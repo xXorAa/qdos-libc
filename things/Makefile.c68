@@ -1,0 +1,37 @@
+#
+#   Nakefile for building components that make up the 
+#   THING and HOTKEY support.
+#
+#   Include test programs.
+#
+#   Much of the material donated by Jonathan Hudson
+
+
+CFLAGS = -O
+
+OBJS = hotkey_o smsfthg_o smslthg_o smsnthg_o smsnthu_o \
+        smsrthg_o smsuthg_o smszthg_o
+
+XOBJS= thgtest_o jcall_s
+
+all:    thgtest  hottest
+
+thgtest: $(OBJS)
+    $(CC) -O -o thgtest thgtest_o jcall_s ${OBJS}
+
+# lib: $(OBJS)
+#     cat >$(QLLIB) $(OBJS)
+
+_s_o :
+    ${CC} -c $<
+
+hottest: hottest_c
+    $(CC) -O -o hottest hottest_c ${OBJS}
+
+# scom: scom.o
+# 	gcc -O2 -o scom scom.c
+# 	strip scom
+
+# hotkey.o: hot.s scom
+#    $(CC) -o hot.o -c hot.s
+#    scom hot.o hot.o "hotthg for c68 v0.05"

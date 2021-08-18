@@ -1,0 +1,7 @@
+Changes by Thierry Godefroy:
+
+20/09/00: 	Added "#" as the first line of all ".x" source files so to
+		force their pre-processing by cpp (via the as script).
+
+		Changed the "LN" macro in all ".x" files so to work around a
+		bug in GNU cpp.

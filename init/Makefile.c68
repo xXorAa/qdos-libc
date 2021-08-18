@@ -1,0 +1,1393 @@
+#                                                  
+#   Makefile to build the C68 LIBC_A Standard C library.
+#
+#   Assumes that Default DATA directory is one containing source and objects
+#
+#   The following macro definitions are used:
+#
+#       NOT_REACHED     Inserted at points which it is not ever expected to
+#                       reach because of program logic.  In particular this
+#                       is used in default branches of switch statements
+#                       where the default is never expected to be taken.
+#                       It will not actually generate code unless NDEBUG
+#                       is also undefined.
+#
+#       NDEBUG          standard ANSI defined macro for controlling whether
+#                       assert statements actually generate code or not.
+#                       A debugging library would have this defined, but
+#                       a production library optimised for performance and
+#                       size would not.
+#
+#   CHANGE HISTORY
+#   ~~~~~~~~~~~~~~
+#   July 1998   DJW   - Removed option to include old IEEE routines.
+#                       Assume need for backwards compatibility expired.
+
+
+DEFINES = -DNOT_REACHED=assert(0)  -DNDEBUG
+# Settings to include debug code
+#DEFINES = -DNOT_REACHED=assert(0)
+
+CFLAGS = -c -O -Qwarn=7 -Qerror=6 -Qmaxerr=5 -Qregframe=a5 $(DEFINES)
+ASFLAGS = -c
+CPPFLAGS = 
+MAC = qmac
+LIBDIR = pth_LIB_
+
+CC = cc
+AS = cc
+ASM = mac
+LD = ld
+CP = cp
+RM = rm
+CO = co
+
+I = $(P)INCLUDE_
+
+.SUFFIXES : _x _s _asm _o _rel _hdr _h
+
+#   Program Initialisation routines
+IN = INIT_
+#   C68 initial startup modules
+CRTOBJ = $(IN)crt_o         $(IN)crtrll_o   $(IN)crespr_o  $(IN)asmstart_o 
+
+INIT_RLL = $(IN)callRLM_o   $(IN)thingtrap_o
+
+INIT =  $(INIT_RLL) \
+        $(IN)_cmdchans_o    $(IN)_envsetup_o    $(IN)_initcon_o \
+        $(IN)_stdchans_o    $(IN)_stkchans_o \
+        $(IN)cmdexpand_o \
+        $(IN)condefault_o   $(IN)conqpac_o      $(IN)contitle_o  \
+        $(IN)libxt_o        $(IN)super_o
+
+#   Character testing and conversion routines
+CH = CTYPE_
+CTYPE_RLL = $(CH)ctype_o    \
+        $(CH)isalnum_o  $(CH)isalpha_o  $(CH)isascii_o  $(CH)iscntrl_o \
+        $(CH)iscsym_o   $(CH)iscsymf_o  $(CH)isdigit_o  $(CH)isgraph_o \
+        $(CH)islower_o  $(CH)isprint_o  $(CH)ispunct_o  $(CH)isspace_o \
+        $(CH)isupper_o  $(CH)isxdigit_o \
+        $(CH)toascii_o  $(CH)tolower_o  $(CH)toupper_o     
+
+CTYPE = $(CTYPE_RLL)
+# 
+#   Default constants
+DF = DEFAULTS_
+#
+#  N.B. We can put into RLL any read only values that
+#       are NOT referenced by other RLL routines
+#
+DEFAULTS_RLL = \
+            $(DF)copyright_o \
+            $(DF)libm_o         $(DF)libcurses_o    $(DF)libdebug_o  \
+            $(DF)liblist_o      $(DF)librll_o \
+            $(DF)libsocket_o    $(DF)libsroff_o \
+            $(DF)libmalloc_o    $(DF)libvt_o \
+            $(DF)progname_o \
+            $(DF)qopenin_o      $(DF)qopenout_o \
+            $(DF)slash_o        $(DF)stack_o        $(DF)stkmargin_o \
+            $(DF)timeout_o      $(DF)version_o
+
+DEFAULTSX = $(DF)C_exc_o        $(DF)C_hex_o
+
+DEFAULT =   $(DEFAULTS_RLL)     $(DF)cmdnames_o \
+            $(DF)cmdchans_o     $(DF)cmdparams_o    $(DF)cmdwild_o \
+            $(DF)condetails_o   $(DF)conname_o      $(DF)consetup_o \
+            $(DF)defprior_o \
+            $(DF)endmsg_o       $(DF)endtimeout_o \
+            $(DF)fmode_o \
+            $(DF)mneed_o        $(DF)memqdos_o      $(DF)memincr_o \
+            $(DF)memmax_o       $(DF)nsems_o \
+            $(DF)openvector_o   $(DF)pipesize_o \
+            $(DF)readkbd_o      $(DF)stkchans_o \
+            $(DF)ufbs_o         $(DF)uiomode_o
+
+#           $(DF)openvector_o 
+
+#   Routines from dirent_h header
+DIR = DIRENT_
+DIRENT =    $(DIR)closedir_o    $(DIR)opendir_o     $(DIR)readdir_o \
+            $(DIR)rewinddir_o   $(DIR)seekdir_o     $(DIR)telldir_o
+
+#   Routines from fcntl_h header
+F = FCNTL_
+FCNTL =   $(F)_chkufb_o     $(F)_conread_o  $(F)_conwrite_o \
+          $(F)_creat_o      $(F)_doopene_o  $(F)_gettimo_o \
+          $(F)_modefd_o     $(F)_modeufb_o  $(F)_modetab_o \
+          $(F)_newufb_o     $(F)_open_o     $(F)_openufb_o \
+          $(F)creat_o       $(F)fcntl_o \
+          $(F)fdmode_o      $(F)iomode_o \
+          $(F)open_o        $(F)opene_o     $(F)qopen_o     $(F)Xopen_o 
+
+#   Routines from libgen_h header that are in both LIBC_A and LIBGEN_A
+G = win2_LIB_GEN_
+GEN_RLL =   $(G)_cescint_o  $(G)_hexint_o   $(G)_octint_o   $(G)_intcesc_o \
+            $(G)_streadd_o  $(G)gmatch_o  \
+            $(G)strcadd_o   $(G)strccpy_o  \
+            $(G)strtrns_o 
+GEN =   $(GEN_RLL)
+
+#   Group file handling
+GR = GRP_
+GRP_RLL =
+GRP =   $(GRP_RLL) \
+        $(GR)getgrent_o     $(GR)getgrnam_o     $(GR)getgrgid_o
+
+LC = LOCALE_
+LOCALE =    $(LC)setlocale_o
+
+#   Miscellaneous stuff with no other home
+MS = MISC_
+MISC_RLL =  $(MS)iscon_o    $(MS)wait_o
+MISC =      $(MISC_RLL) \
+            $(MS)assert_o   $(MS)cachestate_o \
+            $(MS)cCallRLM_o $(MS)fopene_o  \
+            $(MS)pclose_o   $(MS)popen_o \
+            $(MS)rename_o
+
+#   Miscellaneous not used
+MISCX =     $(MS)cprintf_o  $(MS)cscanf_o
+
+#   Password file handling
+PW = PWD_
+PWD_RLL =
+PWD =   $(PWD_RLL) \
+        $(PW)getpwent_o     $(PW)getpwnam_o     $(PW)getpwuid_o
+
+SJ = SETJMP_
+SETJMP = $(SJ)setjmp_o
+
+#   Signal handling
+SIG = SIGNAL_
+
+#   Routines that need to be in a particular relationship
+#   relative to the rest of the library.
+
+SIGSTART  = $(SIG)alarm_o       $(SIG)fraise_o \
+        $(SIG)kill_o        $(SIG)pause_o       $(SIG)psignal_o \
+        $(SIG)raiseu_o      $(SIG)sendsig_o \
+        $(SIG)signal_o      $(SIG)sigset_o \
+        $(SIG)sigaction_o   $(SIG)sigaddset_o \
+        $(SIG)sigcleanup_o \
+        $(SIG)sigdebug_o    $(SIG)sigdelset_o \
+        $(SIG)sigemptyset_o $(SIG)sigfillset_o  $(SIG)sighold_o \
+        $(SIG)sigignore_o   $(SIG)siginit_o     $(SIG)sigismember_o  \
+        $(SIG)siglongjmp_o \
+        $(SIG)signocnt_o    $(SIG)signoimp_o    $(SIG)signomsg_o \
+        $(SIG)sigpause_o    $(SIG)sigpending_o  $(SIG)sigprintf_o \
+        $(SIG)sigprocmask_o $(SIG)sigrelse_o \
+        $(SIG)sigsetjmp_o   $(SIG)sigsuspend_o \
+        $(SIG)sigtimer_o  
+
+SIGSTARTX = $(SIG)sigstart_o $(SIG)siginit_o 
+
+SIGEND =    $(SIG)sigstart_o $(SIG)sigstartx_o \
+            $(SIG)sigcheck_o $(SIG)sigcheckx_o \
+            $(SIG)sigch_o    $(SIG)signoimpx_o
+
+SIGENDX = $(SIG)checknosig_o
+
+# SIGNAL_RLL = $(SIG)onsigkill_o  $(SIG)sigdefault_o
+SIGNAL=     $(SIG)sigdefpri_o $(SIG)sigvec_o    $(SIG)raise_o
+
+# SIGNAL_RLL = $(SIG)onsigkill_o  $(SIG)sigdefault_o
+# SIGNAL= $(SIGNAL_RLL) \
+#        $(SIG)alarm_o       $(SIG)fraise_o \
+#        $(SIG)kill_o        $(SIG)pause_o       $(SIG)psignal_o \
+#        $(SIG)raise_o       $(SIG)raiseu_o      $(SIG)sendsig_o \
+#        $(SIG)signal_o      $(SIG)sigset_o \
+#        $(SIG)sigaction_o   $(SIG)sigaddset_o \
+#        $(SIG)sigcleanup_o  $(SIG)sigcurrent_o \
+#        $(SIG)sigdefpri_o   $(SIG)sigdelset_o \
+#        $(SIG)sigemptyset_o $(SIG)sigfillset_o  $(SIG)sighold_o \
+#        $(SIG)sigignore_o   $(SIG)sigismember_o $(SIG)siglongjmp_o \
+#        $(SIG)signocnt_o    $(SIG)signoimp_o    $(SIG)signomsg_o \
+#        $(SIG)sigpause_o    $(SIG)sigpending_o  $(SIG)sigprintf_o \
+#        $(SIG)sigprocmask_o $(SIG)sigrelse_o    $(SIG)sigsamask_o \
+#        $(SIG)sigsetjmp_o   $(SIG)sigsuspend_o \
+#        $(SIG)sigtimer_o    $(SIG)siguval_o
+
+#   Earl chew's stdio package
+IO = STDIO_
+STDIO_RLL = 
+STDIO = $(STDIO_RLL) \
+        $(IO)_allocbuf_o $(IO)_bfs_o    $(IO)_bread_o   $(IO)_bwrite_o \
+        $(IO)_err_o     $(IO)_fgetlx_o  $(IO)_file_o \
+        $(IO)_fopen_o   $(IO)_freebuf_o $(IO)_in_o      $(IO)_ioread_o \
+        $(IO)_iowrite_o $(IO)_ipow10_o  $(IO)_open3_o   $(IO)_os_o \
+        $(IO)_out_o     $(IO)_rlbf_o    $(IO)_stdio_o \
+        $(IO)_update_o  $(IO)_utoa_o    $(IO)_vfprintf_o $(IO)_vfscanf_o \
+        $(IO)_vscanf_o  $(IO)_vsscanf_o $(IO)_xassert_o $(IO)_z_cvt_o \
+        $(IO)_z_tvc_o   $(IO)_zatexit_o $(IO)_zerr_o    $(IO)_zout_o \
+        $(IO)_zrlbf_o   $(IO)_zwrapup_o \
+        $(IO)atexit_o   $(IO)clearerr_o $(IO)exit_o     $(IO)fclose_o \
+        $(IO)fdopen_o   $(IO)feof_o     $(IO)ferror_o   $(IO)fflush_o \
+        $(IO)fgetc_o    $(IO)fgetpos_o  $(IO)fgets_o    $(IO)fileno_o \
+        $(IO)fopen_o    $(IO)fprintf_o  $(IO)fputc_o    $(IO)fputs_o \
+        $(IO)fread_o    $(IO)freopen_o  $(IO)fscanf_o   $(IO)fseek_o \
+        $(IO)fsetpos_o  $(IO)ftell_o    $(IO)fwrite_o   $(IO)getc_o \
+        $(IO)getchar_o  $(IO)gets_o     $(IO)getw_o     $(IO)perror_o \
+        $(IO)printf_o   $(IO)putc_o     $(IO)putchar_o  $(IO)puts_o \
+        $(IO)putw_o     $(IO)remove_o   $(IO)rewind_o   $(IO)scanf_o \
+        $(IO)setbuf_o   $(IO)setvbuf_o  $(IO)sprintf_o  $(IO)sscanf_o \
+        $(IO)tempnam_o  $(IO)tmpfile_o  $(IO)tmpnam_o \
+        $(IO)ungetc_o   $(IO)vfprintf_o $(IO)vprintf_o  $(IO)vsprintf_o
+#   Routines that are not used
+STDIOX = $(IO)_rename_o  $(IO)_errlist_o
+
+#IO = ESTDIO34_
+#STDIO_RLL = \
+#        $(IO)_errlist_o
+#STDIO = $(STDIO_RLL) \
+#        $(IO)_allocbuf_o    $(IO)_bfs_o         $(IO)_bread_o \
+#        $(IO)_bwrite_o      $(IO)_cclose_o      $(IO)_clseek_o \
+#        $(IO)_cread_o       $(IO)_cwrite_o      $(IO)_dup_2_o \
+#        $(IO)_eputs_o       $(IO)_err_o \
+#        $(IO)_errno_o       $(IO)_fcloseall_o   $(IO)_fgetlx_o \
+#        $(IO)_file_o        $(IO)_fopen_o       $(IO)_freebuf_o \
+#        $(IO)_fropen_o      $(IO)_funopen_o     $(IO)_fwopen_o \
+#        $(IO)_in_o          $(IO)_ioread_o      $(IO)_iowrite_o \
+#        $(IO)_ipow10_o      $(IO)_open_3_o      $(IO)_os_o \
+#        $(IO)_out_o         $(IO)_rlbf_o \
+#        $(IO)_setvbuf_o     $(IO)_snprintf_o    $(IO)_stdio_o \
+#        $(IO)_update_o      $(IO)_utoa_o        $(IO)_vfprintf_o \
+#        $(IO)_vfscanf_o     $(IO)_vscanf_o      $(IO)_vsnprintf_o \
+#        $(IO)_vsscanf_o     $(IO)_xassert_o     $(IO)_z_cvt_o \
+#        $(IO)_z_tvc_o       $(IO)_zatexit_o     $(IO)_zerr_o \
+#        $(IO)_zmalloc_o     $(IO)_zout_o        $(IO)_zrlbf_o \
+#        $(IO)_zwrapup_o     $(IO)abort_o        $(IO)atexit_o \
+#        $(IO)clearerr_o     $(IO)ctermid_o      $(IO)cuserid_o \
+#        $(IO)exit_o         $(IO)fclose_o       $(IO)fdopen_o \
+#        $(IO)feof_o         $(IO)ferror_o       $(IO)fflush_o \
+#        $(IO)fgetc_o        $(IO)fgetpos_o      $(IO)fgets_o \
+#        $(IO)fileno_o       $(IO)fopen_o        $(IO)fprintf_o \
+#        $(IO)fputc_o        $(IO)fputs_o        $(IO)fread_o \
+#        $(IO)freopen_o      $(IO)fscanf_o       $(IO)fseek_o \
+#        $(IO)fsetpos_o      $(IO)ftell_o        $(IO)fwrite_o \
+#        $(IO)getc_o         $(IO)getchar_o      $(IO)gets_o \
+#        $(IO)getw_o         $(IO)perror_o       $(IO)printf_o \
+#        $(IO)putc_o         $(IO)putchar_o      $(IO)puts_o \
+#        $(IO)putw_o         $(IO)remove_o       $(IO)rewind_o \
+#        $(IO)scanf_o        $(IO)setbuf_o       $(IO)setvbuf_o \
+#        $(IO)sprintf_o      $(IO)sscanf_o       $(IO)tmpfile_o \
+#        $(IO)tmpnam_o       $(IO)ungetc_o       $(IO)vfprintf_o \
+#        $(IO)vprintf_o      $(IO)vsprintf_o
+##   Routines that are not used
+#ESTDIOX = $(IO)_re_name_o
+
+#   Routines defined in sys/stat.h
+ST   =   STAT_
+STAT_RLL =
+STAT =  $(STAT_RLL)  \
+        $(ST)_fstat_o  $(ST)_stat_o \
+        $(ST)chmod_o   $(ST)fchmod_o    $(ST)fstat_o    $(ST)lstat_o  \
+        $(ST)mkdir_o   $(ST)mkfifo_o    $(ST)mknod_o \
+        $(ST)stat_o    $(ST)umask_o
+
+#   Routines defined in stdlib.h
+STD = STDLIB_
+STDLIB_RLL= $(STD)abs_o         $(STD)atof_o        $(STD)atoi_o \
+            $(STD)atol_o        $(STD)div_o         $(STD)itoa_o \
+            $(STD)labs_o        $(STD)ldiv_o \
+            $(STD)mblen_o       $(STD)mbstowcs_o    $(STD)mbtowc_o \
+            $(STD)wcstombs_o    $(STD)wctomb_o
+STDLIB= $(STDLIB_RLL) \
+        $(STD)_abort_o  $(STD)_calloc_o $(STD)_putenv_o \
+        $(STD)_qsort_o  $(STD)_realloc_o \
+        $(STD)_strtod_o $(STD)_strtoul_o \
+        $(STD)abort_o   $(STD)bsearch_o $(STD)calloc_o  $(STD)free_o \
+        $(STD)getenv_o  $(STD)getopt_o  $(STD)getpass_o  \
+        $(STD)isatty_o  $(STD)malloc_o  $(STD)mktemp_o \
+        $(STD)putenv_o  $(STD)qsort_o   $(STD)rand_o    $(STD)realloc_o \
+        $(STD)strtod_o  $(STD)strtod_aux_o \
+        $(STD)strtol_o  $(STD)strtoul_o \
+        $(STD)system_o  $(STD)ttyname_o
+
+#   String handling routines (defined in string.h and memory.h)
+S =  STRING_
+STRING_RLL= \
+        $(S)_memcmp_o   $(S)_memcpy_o   $(S)_memset_o \
+        $(S)_strcat_o   $(S)_strcpy_o   $(S)_strlen_o \
+        $(S)bcmp_o      $(S)bcopy_o     $(S)bzero_o \
+        $(S)memccpy_o   $(S)memchr_o    $(S)memcmp_o \
+        $(S)memcpy_o    $(S)memmove_o   $(S)memset_o  \
+        $(S)stccpy_o    $(S)stpblk_o    $(S)stpcpy_o \
+        $(S)strbpl_o \
+        $(S)strcat_o    $(S)strchr_o    $(S)strcmp_o    $(S)strcoll_o \
+        $(S)strcpy_o    $(S)strcspn_o   $(S)strerror_o \
+        $(S)strfnd_o \
+        $(S)stricmp_o   $(S)strins_o \
+        $(S)strlen_o    $(S)strlwr_o \
+        $(S)strmfe_o    $(S)strmfn_o    $(S)strmfp_o \
+        $(S)strncat_o   $(S)strncmp_o   $(S)strncpy_o   $(S)strnicmp_o \
+        $(S)strpbrk_o   $(S)strpos_o \
+        $(S)strrchr_o   $(S)strrev_o    $(S)strrpbrk_o  $(S)strrpos_o \
+        $(S)strspn_o    $(S)strstr_o    $(S)strrstr_o \
+        $(S)strtok_o    $(S)strupr_o    $(S)strxfrm_o   $(S)syserr_o
+
+STRINGX = $(S)strstrip_o    $(S)strrstip_o 
+STRING = $(STRING_RLL) \
+        $(S)strdup_o
+
+#   Termios routines
+TM = TERMIOS_
+TERMIOS_RLL =
+TERMIOS = $(TERMIOS_RLL) \
+
+#   Time routines
+T = TIME_
+TIME_RLL =  $(T)_timeconst_o    $(T)_timetext_o \
+            $(T)_time_o \
+            $(T)clock_o         $(T)gmtime_o \
+            $(T)time_o          $(T)times_o
+TIME =  $(TIME_RLL) \
+        $(T)_asctime_o \
+        $(T)asctime_o       $(T)ctime_o         $(T)difftime_o \
+        $(T)jdate_o         $(T)mktime_o \
+        $(T)strftime_o      $(T)utime_o
+
+#   Routines in unistd_h
+USTD = UNISTD_
+UNISTD_RLL = $(USTD)getpid_o $(USTD)getuid_o    $(USTD)sleep_o  
+UNISTD= $(UNISTD_RLL) \
+        $(USTD)_cd_o        $(USTD)_chdir_o     $(USTD)_close_o \
+        $(USTD)_dup2_o      $(USTD)_exit_o      $(USTD)_forkexec_o \
+        $(USTD)_read_o      $(USTD)_unlink_o    $(USTD)_write_o \
+        $(USTD)access_o     $(USTD)chdir_o      $(USTD)chown_o \
+        $(USTD)close_o      $(USTD)dup_o        $(USTD)dup2_o \
+        $(USTD)execl_o      $(USTD)execlp_o \
+        $(USTD)execv_o      $(USTD)execvp_o \
+        $(USTD)forkl_o      $(USTD)forklp_o \
+        $(USTD)forkv_o      $(USTD)forkvp_o     $(USTD)fpathconf_o \
+        $(USTD)fsync_o      $(USTD)ftruncate_o \
+        $(USTD)getcwd_o     $(USTD)getlogin_o  \
+        $(USTD)link_o       $(USTD)lsbrk_o      $(USTD)lseek_o \
+        $(USTD)openpipe_o   $(USTD)pathconf_o \
+        $(USTD)read_o       $(USTD)rmdir_o \
+        $(USTD)sbrk_o       $(USTD)stime_o      $(USTD)sync_o \
+        $(USTD)truncate_o   $(USTD)unlink_o     $(USTD)write_o
+
+#   QDOS  Miscellaneous
+Q = QDOS_MISC_
+QMISC_RLL = $(Q)_cstrql_o       $(Q)_dtoqlfp_o \
+            $(Q)_getcdb_o       $(Q)_isfscdb_o  \
+            $(Q)chchown_o       $(Q)fnmatch_o \
+            $(Q)getchown_o      $(Q)getsddata_o     $(Q)getsysvar_o \
+            $(Q)isdevice_o      $(Q)isdirchid_o     $(Q)isdirdev_o \
+            $(Q)itoqlfp_o       $(Q)ltoqlfp_o \
+            $(Q)oserrlist_o     $(Q)qdos1_o         $(Q)qdos2_o \
+            $(Q)qdos3_o         $(Q)qinstrn_o       $(Q)qlfptod_o\
+            $(Q)qlfptof_o       $(Q)qlstrtoc_o \
+            $(Q)qstrcat_o       $(Q)qstrchr_o \
+            $(Q)qstrcmp_o       $(Q)qstrcpy_o \
+            $(Q)qstricmp_o      $(Q)qstrlen_o \
+            $(Q)qstrncat_o      $(Q)qstrncmp_o \
+            $(Q)qstrnicmp_o     $(Q)qstrncpy_o \
+            $(Q)waitfor_o       $(Q)wtoqlfp_o
+
+QMISC = $(QMISC_RLL) \
+        $(Q)_fqstat_o   $(Q)_getcd_o    $(Q)_mkname_o   $(Q)_stackerr_o \
+        $(Q)argfree_o   $(Q)argpack_o   $(Q)argunpk_o \
+        $(Q)beep_o      $(Q)chddir_o    $(Q)chpdir_o    $(Q)conget_o \
+        $(Q)fgetchid_o  $(Q)fqstat_o    $(Q)fusechid_o \
+        $(Q)getcdd_o    $(Q)getchid_o   $(Q)getcpd_o    $(Q)getcname_o \
+        $(Q)isnoclose_o $(Q)keyrow_o    $(Q)openqdir_o \
+        $(Q)poserr_o \
+        $(Q)qdirread_o  $(Q)qdirsort_o \
+        $(Q)qforkl_o    $(Q)qforklp_o   $(Q)qforkv_o    $(Q)qforkvp_o \
+        $(Q)qlmknam_o   $(Q)qstat_o \
+        $(Q)readqdir_o \
+        $(Q)sound_o     $(Q)stackchk_o  $(Q)stackrep_o \
+        $(Q)usechid_o
+
+#   QDOS Trap 1
+Q1 = QDOS_TRAP1_
+TRAP1_RLL = $(Q1)mtactiv_o \
+        $(Q1)mtalchp_o  $(Q1)mtalloc_o  $(Q1)mtalres_o  $(Q1)mtbaud_o \
+        $(Q1)mtcjob_o   $(Q1)mtclock_o  $(Q1)mtdmode_o  $(Q1)mtinf_o \
+        $(Q1)mtipcom_o  $(Q1)mtjinf_o   $(Q1)mtlink_o   $(Q1)mtlnkfr_o \
+        $(Q1)mtprior_o  $(Q1)mtrechp_o  $(Q1)mtreljb_o  $(Q1)mtrjob_o \
+        $(Q1)mtshrink_o $(Q1)mtsusjb_o  $(Q1)mttrans_o  $(Q1)mttrapv_o \
+        $(Q1)smscach_o  $(Q1)smslldm_o  $(Q1)smslset_o  $(Q1)smsiopr_o \
+        $(Q1)smsmptr_o  $(Q1)smspset_o  $(Q1)smssevt_o  $(Q1)smswevt_o
+
+TRAP1 = $(TRAP1_RLL)
+#   QDOS Trap 2
+Q2 = QDOS_TRAP2_
+TRAP2_RLL = $(Q2)ioclose_o  $(Q2)iodelete_o $(Q2)ioformat_o $(Q2)ioopen_o \
+            $(Q2)ioa_cnam_o $(Q2)ioa_sown_o
+TRAP2 = $(TRAP2_RLL)
+
+#   QDOS Trap 3
+Q3 = QDOS_TRAP3_
+TRAP3_RLL = $(Q3)Cextop_o \
+        $(Q3)fsdate_o   $(Q3)fsldsv_o   $(Q3)fsmdinf_o  $(Q3)fsmkdir_o \
+        $(Q3)fsmisc_o   $(Q3)fspos_o    $(Q3)fsposab_o  $(Q3)fsrename_o \
+        $(Q3)ioedlin_o  $(Q3)iofbyte_o  $(Q3)iomisc_o  \
+        $(Q3)sdextop_o  $(Q3)sdfount_o \
+        $(Q3)sdgraph_o  $(Q3)sdigraph_o $(Q3)sdmisc_o 
+TRAP3 = $(TRAP3_RLL)
+
+#   QDOS Vectors
+QV = QDOS_VECT_
+QVECT_RLL = \
+        $(QV)cndate_o   $(QV)cnito_o \
+        $(QV)ioqueue_o  $(QV)ioserio_o  $(QV)ioserq_o  \
+        $(QV)mmalloc_o  $(QV)mmalchp_o  $(QV)mmlnkfr_o  $(QV)mmrechp_o \
+        $(QV)utcstr_o   $(QV)uterr_o \
+        $(QV)utlink_o   $(QV)utmint_o   $(QV)utmtext_o  $(QV)utopen_o \
+        $(QV)utunlnk_o  $(QV)utwind_o
+QVECT = $(QVECT_RLL)
+
+#   THINGS specific routines
+TH = THINGS_
+THINGS_RLL= $(TH)bt_frame_o     $(TH)bt_prpos_o     $(TH)hotkey_o \
+            $(TH)smsfthg_o      $(TH)smslthg_o \
+            $(TH)smsnthg_o      $(TH)smsnthu_o      $(TH)smsrthg_o \
+            $(TH)smsuthg_o      $(TH)smszthg_o
+
+THINGS =   $(THINGS_RLL) 
+
+#   Lattice compatibility routines
+LT = LATTICE_
+#   Ones for which we do have source
+LATTICE_RLL= 
+
+LATTICE=$(LATTICE_RLL) \
+        $(LT)dqsort_o   $(LT)envunpk_o  $(LT)fqsort_o \
+        $(LT)getch_o    $(LT)getfnl_o   $(LT)getmem_o   $(LT)getml_o \
+        $(LT)kbhit_o    $(LT)lqsort_o   $(LT)putch_o \
+        $(LT)rlsmem_o   $(LT)rlsml_o    $(LT)setnbf_o \
+        $(LT)sizmem_o   $(LT)sqsort_o   $(LT)tqsort_o
+
+#   Routines for which we have no source but do have useable object !
+LATOBJ= $(LT)stchi_o    $(LT)stchl_o    $(LT)stcid_o    $(LT)stcih_o \
+        $(LT)stcio_o    $(LT)stcld_o    $(LT)stclh_o    $(LT)stclo_o \
+        $(LT)stcpm_o    $(LT)stcpma_o   $(LT)stcud_o    $(LT)stculd_o \
+        $(LT)CXD33_o    $(LT)CXM33_o
+#   Lattice routines not included or supported (yet)
+LATTICEX =  $(LT)fqsort_o \
+            $(LT)stcarg_o   $(LT)stcdi_o    $(LT)stcdl_o \
+            $(LT)stcis_o
+
+#   Pointer Interface routines
+QP = QPTR_
+QPTR_RLL=   $(QP)iop_flim_o      $(QP)iop_lblb_o \
+            $(QP)iop_outl_o      $(QP)iop_pick_o      $(QP)iop_pinf_o \
+            $(QP)iop_rptr_o      $(QP)iop_rpxl_o      $(QP)iop_slnk_o \
+            $(QP)iop_spry_o      $(QP)iop_sptr_o  \
+            $(QP)iop_svpw_o      $(QP)iop_swdf_o \
+            $(QP)iop_wblb_o      $(QP)iop_wrst_o \
+            $(QP)iop_wsav_o      $(QP)iop_wspt_o \
+            $(QP)readmove_o \
+            $(QP)wm_action_o  \
+            $(QP)wm_chwin_o      $(QP)wm_cluns_o \
+            $(QP)wm_drbdr_o \
+            $(QP)wm_ename_o      $(QP)wm_erstr_o \
+            $(QP)wm_findv_o      $(QP)wm_fsize_o \
+            $(QP)wm_idraw_o \
+            $(QP)wm_mdraw_o      $(QP)wm_mhit_o       $(QP)wm_msect_o \
+            $(QP)wm_pansc_o      $(QP)wm_rptrt_o \
+            $(QP)wm_setup_o      $(QP)wm_smenu_o \
+            $(QP)wm_stob_o       $(QP)wm_swdef_o      $(QP)wm_swind_o \
+            $(QP)wm_wdraw_o \
+            $(QP)sprite_arrow_o \
+            $(QP)sprite_cf1_o    $(QP)sprite_cf2_o \
+            $(QP)sprite_cf3_o    $(QP)sprite_cf4_o \
+            $(QP)sprite_f1_o     $(QP)sprite_f2_o     $(QP)sprite_f3_o \
+            $(QP)sprite_f4_o     $(QP)sprite_f5_o     $(QP)sprite_f6_o \
+            $(QP)sprite_f7_o     $(QP)sprite_f8_o     $(QP)sprite_f9_o \
+            $(QP)sprite_f10_o \
+            $(QP)sprite_hand_o \
+            $(QP)sprite_insg_o   $(QP)sprite_insl_o \
+            $(QP)sprite_left_o \
+            $(QP)sprite_move_o \
+            $(QP)sprite_size_o   $(QP)sprite_sleep_o \
+            $(QP)sprite_wake_o \
+            $(QP)sprite_zero_o \
+            $(QP)ioppick_o       $(QP)trap15_o
+
+QPTR= $(QPTR_RLL)
+
+
+#   C68 Compiler Support routines
+SP   = win2_C68_LIB68K_
+IEEE = win2_C68_LIBIEEE_
+
+C68OBJ_RLL= $(SP)Xalloca32_o $(SP)Xdiv_o  $(SP)Xmul_o \
+        $(SP)Xbfasop_o   $(SP)Xbfget_o    $(SP)Xbfput_o \
+        $(IEEE)Xnorm4_o     $(IEEE)Xnorm8_o \
+        $(IEEE)sfcmp_o      $(IEEE)dfcmp_o \
+        $(IEEE)Yasdivsf_o   $(IEEE)Yasdivdf_o \
+        $(IEEE)Yasmulsf_o   $(IEEE)Yasmuldf_o \
+        $(IEEE)Yasopsf_o    $(IEEE)Yasopdf_o \
+        $(IEEE)Ysfadd_o     $(IEEE)Ydfadd_o  \
+        $(IEEE)Ysfdiv_o     $(IEEE)Ydfdiv_o \
+        $(IEEE)Ysfmul_o     $(IEEE)Ydfmul_o \
+        $(IEEE)Ysfneg_o     $(IEEE)Ydfneg_o  \
+        $(IEEE)Ysfinc_o     $(IEEE)Ydfinc_o  \
+        ${IEEE}Ysftst_o     ${IEEE}Ydftst_o \
+        $(IEEE)Ysftodf_o    $(IEEE)Ydftosf_o \
+        $(IEEE)Ysfltosf_o   $(IEEE)Ydfltodf_o \
+        $(IEEE)Ysfutosf_o   $(IEEE)Ydfutodf_o \
+        $(IEEE)Ysftol_o     $(IEEE)Ydftol_o  \
+        $(IEEE)Ysftoul_o    $(IEEE)Ydftoul_o \
+        $(IEEE)FPcheck_o
+
+#   long double support routines that are not yet ready for use
+#        $(IEEE)XNorm12_o)\
+#        $(IEEE)lfcmp_o \
+#        $(IEEE)Ysftolf_o \
+#        $(IEEE)Ydftolf_o \
+#        $(IEEE)Yasdivlf_o \
+#        $(IEEE)Yasmullf_o \
+#        $(IEEE)Yasoplf_o \
+#        $(IEEE)Ylfadd_o  \
+#        $(IEEE)Ylfdiv_o \
+#        $(IEEE)Ylfmul_o \
+#        $(IEEE)Ylfneg_o \
+#        $(IEEE)Ylfinc_o \
+#        $(IEEE)Ylftst_o \
+#        $(IEEE)Ylftosf_o \
+#        $(IEEE)Ylftodf_o \
+#        $(IEEE)Ylfltolf_o \
+#        $(IEEE)Ylfutolf_o \
+#        $(IEEE)Ylftol_o \
+#        $(IEEE)Ylftoul_o 
+
+#   coldfire support routines that are not yet completed
+#       $(IEEE)Xascdiv_o \
+#       $(IEEE)Xasucdiv_o \
+#       $(IEEE)Xassdiv_o \
+#       $(IEEE)Xasusdiv_o \
+#       $(IEEE)Xsdiv_o  \
+#       $(IEEE)Xusdiv_o
+
+# C68OBJ= $(C68OBJ_RLL) $(C68OLD) \
+
+C68OBJ= $(C68OBJ_RLL) \
+        $(SP)stackcheck_o $(SP)stmttrace_o \
+        $(IEEE)frexp_o  $(IEEE)ldexp_o  $(IEEE)modf_o   $(IEEE)modff_o \
+        $(IEEE)Xerror_o 
+
+#   Old c68 routines retained for compatibility with old libraries
+
+# C68OLD =$(SP)Xdivs_o   $(SP)Xdivu_o $(SP)Xmuls_o     $(SP)Xmulu_o 
+C68OLD= $(IEEE)asdiv_o   $(IEEE)asmul_o   $(IEEE)asop_o \
+        $(IEEE)dfadd_o   $(IEEE)dfdiv_o  $(IEEE)dfltodf_o \
+        $(IEEE)dfneg_o   $(IEEE)dfmul_o   $(IEEE)dftol_o  $(IEEE)dftosf_o \
+        $(IEEE)dftoul_o  $(IEEE)dftst_o   $(IEEE)dfutodf_o \
+        $(IEEE)sfadd_o   $(IEEE)sfdiv_o  $(IEEE)sfltosf_o \
+        $(IEEE)sfmul_o   $(IEEE)sfneg_o   $(IEEE)sftodf_o $(IEEE)sftol_o \
+        $(IEEE)sftoul_o  $(IEEE)sftst_o   $(IEEE)sfutosf_o \
+
+MFFP = .._.._C68_LIBMFFP_
+#   Motoroloa MFFP routines
+#       $(MFFP)fpadd_o  $(MFFP)fpcmp_o  $(MFFP)fpconv_o \
+#       $(MFFP)fpdiv_o  $(MFFP)fpmult_o
+#   A list of all the headers used by C68.  We need to check that
+#   the 'packed' version is more recent than the full commented
+#   version
+
+#   This is a special library that is pulled in if hardware in-line
+#   floating point instructions have been generated.  It is used to
+#   ensure that such programs are not run on systems that do not
+#   have such support.
+
+LIBFPU =    $(IN)libfpu_o
+
+LIBXT  =    $(IN)libxt_o
+
+LIBXA  =    $(IN)libxa_o
+
+LIBXC  =    $(IN)libxc_o
+
+HEADERS =   $(I)arpa_ftp_h      $(I)arpa_inet_h     $(I)arpa_telnet_h \
+            $(I)ansicondef_h    $(I)assert_h        $(I)basic_h \
+            $(I)channels_h  $(I)ctype_h     $(I)curses_h \
+            $(I)debug_h     $(I)dirent_h  \
+            $(I)errno_h     $(I)fcntl_h     $(I)float_h \
+            $(I)grp_h \
+            $(I)iso646_h \
+            $(I)langinfo_h  $(I)libgen_h    $(I)limits_h    $(I)locale_h \
+            $(I)malloc_h    $(I)math_h      $(I)memory_h \
+            $(I)netdb_h     $(I)nice_h      $(I)nl_types_h \
+            $(I)netinet_in_h    $(I)netinet_in_systm_h \
+            $(I)netinet_ip_h    $(I)netinet_ip_icmp_h   $(I)netinet_ip_var_h \
+            $(I)netinet_tcp_h   $(I)netinet_udp_h \
+            $(I)pwd_h \
+            $(I)qdos_h      $(I)qptr_h \
+            $(I)rll_h \
+            $(I)setjmp_h        $(I)signal_h        $(I)sms_h \
+            $(I)sockaddrcom_h   $(I)sroff_h \
+            $(I)std_h       $(I)stdarg_h     $(I)stddef_h \
+            $(I)stdlib_h    $(I)stdio_h      $(I)string_h  \
+            $(I)sys_math_h  $(I)sys_qlib_h \
+            $(I)sys_bsdtypes_h  $(I)sys_file_h \
+            $(I)sys_ioctl_h     $(I)sys_param_h \
+            $(I)sys_select_h    $(I)sys_signal_h    $(I)sys_socket_hdr \
+            $(I)sys_stat_h      $(I)sys_sysdefs_h   $(I)sys_trapdefs_h \
+            $(I)sys_times_h     $(I)sys_types_h     $(I)sys_wait_h \
+            $(I)term_h      $(I)termios_h    $(I)things_h    $(I)time_h \
+            $(I)un_h        $(I)unctrl_h    $(I)unistd_h     $(I)utime_h   \
+            $(I)varargs_h \
+            $(I)wchar_h     $(I)wctype_h
+
+all :   libc_a  libfpu_a libxt_a libxa_a libxc_a
+
+# all :   libc_a libc_rll
+
+#
+#   Standard C library.
+#
+LIBOBJASM = $(THINGS)  $(QVECT)   $(TRAP1)  $(TRAP2)  $(TRAP3)  $(QPTR)
+
+LIBOBJ =    $(QMISC)    $(LATTICE)  $(CTYPE)    $(GEN)    $(GRP) \
+            $(TIME)     $(SIGNAL)   $(STDLIB)   $(PWD)    $(FCNTL) \
+            $(DIRENT)   $(UNISTD)   $(STRING)   $(STAT)   $(SETJMP) \
+            $(LOCALE)   $(TERMIOS)  $(MISC)     $(DEFAULT)  $(INIT)
+
+#
+#   These functions must ALWAYS be at the start of the
+#   LIBC librayr in exactly the order given
+#
+LIBSTART = $(DF)Cstart_o $(IN)Cinit_o $(SIGSTART)
+
+
+#
+#   These functions must ALWAYS be at the end of the LIBC_A
+#   library in exactly the order given.   This is so that
+#   we can supply alternative implementations of some key
+#   vectors if no explicit library calls inside program.
+#
+
+LIBEND = $(SIGEND)
+
+libc_a : $(HEADERS) $(C68OBJ) $(LIBOBJASM) $(LIBOBJ)\
+         $(STDIO) $(LIBSTART) $(LIBEND) $(IN)libc_o \
+         slbstart slblist slbend wlist ylist wlist_rll ylist_rll
+    slb -crv libc_a $(IN)libc_o 
+    slb -crv -mslbstart libc_a
+    slb -crv -mslblist libc_a
+    slb -crv -mslbend libc_a
+
+libfpu_a : $(LIBFPU)
+    slb -crv libfpu_a $(LIBFPU)
+
+libxa_a  : $(LIBXA)
+    slb -crv libxa_a $(LIBXA)
+
+libxc_a  : $(LIBXC)
+    slb -crv libxc_a $(LIBXC)
+
+libxt_a  : $(LIBXT)
+    slb -crv libxt_a $(LIBXT)
+
+$(IN)crt_x      :  $(IN)crtjob_x    $(IN)crtdata_x \
+                   $(IN)proctype_x  $(IN)cache_x
+    @touch  $(IN)crt_x
+
+$(IN)crt_o      :  $(IN)crt_x       $(IN)relocGST_x $(IN)relocLD_x \
+                   $(IN)proctype_x  $(IN)cache_x    $(IN)Cinit_x \
+                   $(IN)crtjob_x    $(IN)crtdata_x 
+    $(CC) -c -I$(C)INIT_ $(IN)crt_x
+
+$(IN)crespr_x   :  $(IN)crtdata_x   $(IN)proctype_x  $(IN)cache_x
+    @touch  $(IN)crespr_x
+
+$(IN)crespr_o   :  $(IN)crespr_x    $(IN)relocGST_x $(IN)relocLD_x
+    $(CC) -c -I$(C)INIT_ $(IN)crespr_x
+
+$(IN)crtrll_x   :  $(IN)crtjob_x    $(IN)crtdata_x \
+                   $(IN)callRLM_x   $(IN)thingtrap_x
+    @touch  $(IN)crtrll_x
+
+$(IN)crtrll_o   :  $(IN)crtrll_x
+    $(CC) -c -I$(C)INIT_ $(IN)crtrll_x
+
+$(IN)asmstart_o : $(IN)asmstart_x
+    $(CC) -c $(IN)asmstart_x
+
+$(IN)qlstart_o  :  $(IN)crt_x       $(IN)relocGST_x $(IN)relocLD_x \
+                   $(IN)proctype_x  $(IN)cache_x    $(IN)Cinit_x \
+                   $(IN)crtjob_x    $(IN)crtdata_x 
+    $(CP) $(IN)crt_x $(IN)qlstart_x
+    $(CC) -c -DGST -I$(IN) $(IN)qlstart_x
+    $(RM) $(IN)qlstart_x
+
+wlist : slblist slbstart slbend $(IN)crt_o
+        @slb -vU -Wwlist -mslblist $(IN)crt_o \
+                        $(LIBSTART) $(IN)libc_o $(LIBEND)
+
+
+ylist : slblist slbstart
+        @slb -vU -Yylist -mslbstart -mslblist -mslbend $(IN)crt_o $(IN)libc_o
+
+slblist: init
+        @slb -v -Lslblist_tmp $(C68OBJ) $(LIBOBJASM) $(LIBOBJ) $(STDIO)
+        tsort slblist_tmp >slblist
+        @rm -fv libc_a slblist_tmp wlist wlist_rll ylist ylist_rll
+
+slbstart : $(LIBSTART)
+        @slb -v -Lslbstart_tmp $(LIBSTART)
+        tsort slbstart_tmp >slbstart
+        @rm -fv slbstart_tmp
+
+slbend : $(LIBEND)
+        @slb -v -Lslbend_tmp $(LIBEND)
+        tsort slbend_tmp >slbend
+        @rm -fv slbend_tmp
+
+#
+#   RLL version of C library
+#   (contains subset of routines in full C library)
+#
+LIBOBJ_RLL= $(THINGS_RLL)   $(QVECT_RLL)    $(TRAP1_RLL)    $(TRAP2_RLL) \
+            $(TRAP3_RLL)    $(QPTR_RLL)     $(QMISC_RLL)    $(LATTICE_RLL) \
+            $(CTYPE_RLL)    $(GEN_RLL)      $(TIME_RLL)     $(SIGNAL) \
+            $(STDLIB_RLL)   $(PWD_RLL)      $(FCNTL_RLL)    $(DIRENT_RLL) \
+            $(UNISTD_RLL)   $(STRING_RLL)   $(STAT_RLL)     $(TERMIOS_RLL) \
+            $(MISC_RLL)     $(DEFAULT_RLL)  $(INIT_RLL)     $(C68OBJ_RLL)
+
+libc_rll : libc_a $(IN)libcrll_o wlist_rll ylist_rll
+    ld -R -S $(IN)libcrll_o $(C68OBJ) $(LIBOBJ_RLL)
+
+slblist_rll:
+        @slb -v -Lslblist_tmp $(LIBOBJ_RLL)
+        tsort slblist_tmp >slblist_rll
+        @rm -fv libc_a slblist_tmp wlist wlist_rll ylist ylist_rll
+
+wlist_rll : $(LIBOBJ_RLL)
+        @slb -vU -Wwlist_rll $(LIBOBJ_RLL)
+
+ylist_rll : $(LIBOBJ_RLL) 
+        @slb -v -Yylist_rll $(LIBOBJ_RLL)
+
+
+#
+#   The following have special rules so that they can be compiled
+#   with additional compiler options.  That is because these
+#   routines are recursive, and so should not be used with
+#   lazy stack optimisation as they could use excessive stack space,
+#   or their names begin with undersocre and they change the stack.
+
+$(G)gnmatch_o : $(G)gmatch_c
+    $(CC) -Qstackopt=safest $(CFLAGS) $(G)gmatch_c
+
+$(IN)_envsetup_o : $(IN)_envsetup_c
+    $(CC) -Qstackopt=safest $(CFLAGS) $(IN)_envsetup_c
+
+$(STD)_qsort_o : $(STD)_qsort_x
+    $(CC) -Qstackopt=safest $(CFLAGS) $(STD)_qsort_x
+
+# $(Q)getcname_o : $(Q)getcname_c
+#    $(CC) -Qstackopt=minimum $(CFLAGS) $(Q)getcname_c
+
+$(Q)isdirchid_o : $(Q)isdirchid_c
+    $(CC) -Qstackopt=minimum $(CFLAGS) $(Q)isdirchid_c
+
+$(Q)isdirdev_o : $(Q)isdirdev_c
+    $(CC) -Qstackopt=minimum $(CFLAGS) $(Q)isdirdev_c
+
+# $(ST)_fakeino_o : $(ST)_fakeino_c
+#    $(CC) -Qstackopt=minimum $(CFLAGS) $(ST)_fakeino_c
+
+#
+#   Default rules
+#
+_x_o:
+    $(CC) $(CPPFLAGS) $(ASFLAGS) $*_x
+
+#_x,v_o :
+#    $(CO) -p $(COFLAGS) $< >$*_x
+#    $(CC) $(CFLAGS) $*_x
+#    $(RM) $(RMFLAGS) $*_x
+
+_c_o:
+    $(CC) -Qstackopt=maximum $(CFLAGS) $<
+
+#_c,v_o :
+#    $(CO) -p $(COFLAGS) $< >$*_c
+#    $(CC) -Qstackopt=maximum $(CFLAGS) $*_c
+#    $(RM) $(RMFLAGS) $*_c
+
+_s_o:
+    $(AS) $(ASFLAGS) $<
+
+#_s,v_o :
+#    $(CO) -p $(COFLAGS) $< >$*_s
+#    $(AS) $(ASFLAGS) $*_s
+#    $(RM) $(RMFLAGS) $*_s
+
+_asm_o :
+    $(MAC) $*_asm -ERRORS $*_list -BIN $*_o -NOWINDS
+
+_hdr_h:
+    packhdr $*_hdr $*_h
+
+#
+#   The following are used to allow only a sub-section 
+#   of the library to be recompiled.  This is particularily
+#   useful in development and test modes
+#
+header :  $(HEADERS)
+
+crt :   $(CRTOBJ)
+
+ctype : $(CTYPE)
+
+default : $(DEFAULT)
+
+dirent : $(DIRENT)
+
+fcntl : $(FCNTL)
+
+gen :   $(GEN)
+
+grp :   $(GRP)
+
+init :   $(CRTOBJ) $(INIT)
+
+misc : $(MISC)
+
+pwd  :  $(PWD)
+
+signal : $(SIGNAL)
+
+stdio : $(STDIO)
+    echo "Run Makefile in STDIO directory"
+
+termios : $(TERMIOS)
+
+time : $(TIME)
+
+string : $(STRING)
+
+stdlib : $(STDLIB)
+
+stat : $(STAT)
+
+unistd : $(UNISTD)
+
+trap1 : $(TRAP1)
+
+trap2 : $(TRAP2)
+
+trap3 : $(TRAP3)
+
+qmisc : $(QMISC)
+
+qvect : $(QVECT)
+
+things :   $(THINGS)
+
+qptr : $(QPTR)
+
+lattice : $(LATTICE)
+
+#
+#   Standard utility capabilities
+#
+install : 
+    cp libc_a $(LIBDIR)libc_a
+    slb -cr $(LIBDIR)crt_o crt_o
+    slb -cr $(LIBDIR)crespr_o crespr_o
+    slb -cr $(LIBDIR)qlstart_o qlstart_o
+
+clean:
+    @$(RM) -fv $(LIBOBJ) $(STDIO)
+    @echo "You need to do a MAKE in the STDIO sib-directory"
+
+clobber:    clean
+    @$(RM) -fv libc_a wlist ylist slblist $(CRTOBJ) $(C68OBJ) $(LIBOBJASM)
+    @echo  "You need to do a make in the C68 support routine sub-directories"
+    @echo  "... and also in the STDIO sub-directory"
+
+
+#------------------------ Header file dependencies -------------------------
+#   This section identifies all depenedencies of the files making up the
+#   library on local and system header files.  The accuracy of these
+#   dependencies is important to avoid having to rebuild the whole of
+#   the library if a single header changes.
+#----------------------------------------------------------------------------
+
+$(I)qdos_h      : $(I)sys_qlib_h
+$(I)sms_h       : $(I)sys_qlib_h
+$(I)sys_qlib    : $(I)ansi_h $(I)limits_h $(I)sys_types_h
+
+#   Initialisation routines
+$(IN)_bss_o     :  
+$(IN)crt_o      :   
+$(IN)crespr_o   :   
+$(IN)qlstart_o  :   
+$(IN)_cmdchans_o:   $(I)qdos_h      $(I)fcntl_h     $(I)stdlib_h    $(I)string_h
+$(IN)_cmdline_o :   $(I)qdos_h      $(I)stdlib_h
+$(IN)_cmdparse_o :  $(I)qdos_h      $(I)ctype_h     $(I)string_h    $(I)stdlib_h
+$(IN)_envsetup_o:   $(I)qdos_h      $(I)basic_h     $(I)string_h    $(I)stdlib_h
+$(IN)_initcon_o:    $(I)qdos_h
+$(IN)_stdchans_o :  $(I)qdos_h      $(I)fcntl_h     $(I)string_h    $(I)stdlib_h
+$(IN)_stkchans_o:   $(I)qdos_h      $(I)fcntl_h
+$(IN)cmdexpand_o:   $(I)qdos_h      $(I)stdlib_h    $(I)string_h    $(I)errno_h
+$(IN)cmdnowild_o:   $(I)qdos_h      $(I)stdlib_h
+$(IN)condefault_o:  $(I)qdos_h
+$(IN)conqpac_o :    $(I)qdos_h      $(I)qptr_h
+$(IN)contitle_o :   $(I)qdos_h  $(I)string_h
+#   Default routine
+$(DF)cmdchans_o :   $(I)qdos_h
+$(DF)cmdparams_o:   $(I)qdos_h
+$(DF)cmdwild_o  :   $(I)qdos_h
+$(DF)consetup_o :   $(I)qdos_h
+$(DF)readkbd_o  :   $(I)qdos_h
+$(DF)stkchans_o :   $(I)qdos_h
+#   Memory routines (BSD compatible)
+$(M)bcmp_o      :   $(I)memory_h
+$(M)bcopy_o     :   $(I)memory_h
+$(M)bzero_o     :   $(I)memory_h
+#   Earl chew's stdio package
+# $(IO)stdiolib_h :   $(IO)config_h   $(IO)site_h
+# $(IO)stdiolib_h :   $(IO)config_h   $(IO)site_h   \
+#                     $(I)errno_h     $(I)fcntl_h     $(I)limits_h \
+#                     $(I)stdio_h     $(I)time_h      $(I)unistd_h \
+#                     $(I)sys_stat_h  $(I)sys_types_h
+#       touch $(IO)stdiolib_h
+# $(IO)_allocbuf_o:   $(IO)stdiolib_h
+# $(IO)_bfs_o     :   $(IO)stdiolib_h
+# $(IO)_bread_o   :   $(IO)stdiolib_h
+# $(IO)_bwrite_o  :   $(IO)stdiolib_h
+# $(IO)_err_o     :   $(IO)stdiolib_h
+# $(IO)_errlist_o :   $(IO)stdiolib_h $(IO)errlist_h
+# $(IO)_fgetlx_o  :   $(IO)stdiolib_h
+# $(IO)_file_o    :   $(IO)stdiolib_h
+# $(IO)_fopen_o   :   $(IO)stdiolib_h
+# $(IO)_freebuf_o :   $(IO)stdiolib_h
+# $(IO)_in_o      :   $(IO)stdiolib_h
+# $(IO)_ioread_o  :   $(IO)stdiolib_h
+# $(IO)_iowrite_o :   $(IO)stdiolib_h
+# $(IO)_ipow10_o  :   $(IO)stdiolib_h
+# $(IO)_open3_o   :   $(IO)stdiolib_h
+# $(IO)_os_o      :   $(IO)stdiolib_h
+# $(IO)_out_o     :   $(IO)stdiolib_h
+# $(IO)_rename_o  :   $(IO)stdiolib_h
+# $(IO)_rlbf_o    :   $(IO)stdiolib_h
+# $(IO)_stdio_o   :   $(IO)stdiolib_h
+# $(IO)_update_o  :   $(IO)stdiolib_h
+# $(IO)_utoa_o    :   $(IO)stdiolib_h
+# $(IO)_vfprintf_o:   $(IO)stdiolib_h
+# $(IO)_vfscanf_o :   $(IO)stdiolib_h
+# $(IO)_vscanf_o  :   $(IO)stdiolib_h
+# $(IO)_vsscanf_o :   $(IO)stdiolib_h
+# $(IO)_xassert_o :   $(IO)stdiolib_h
+# $(IO)_z_cvt_o   :   $(IO)stdiolib_h
+# $(IO)_z_tvc_o   :   $(IO)stdiolib_h
+# $(IO)_zatexit_o :   $(IO)stdiolib_h
+# $(IO)_zerr_o    :   $(IO)stdiolib_h
+# $(IO)_zout_o    :   $(IO)stdiolib_h
+# $(IO)_zrlbf_o   :   $(IO)stdiolib_h
+# $(IO)_zwrapup_o :   $(IO)stdiolib_h
+# $(IO)atexit_o   :   $(IO)stdiolib_h
+# $(IO)clearerr_o :   $(IO)stdiolib_h
+# $(IO)exit_o     :   $(IO)stdiolib_h
+# $(IO)fclose_o   :   $(IO)stdiolib_h
+# $(IO)fdopen_o   :   $(IO)stdiolib_h
+# $(IO)feof_o     :   $(IO)stdiolib_h
+# $(IO)ferror_o   :   $(IO)stdiolib_h
+# $(IO)fflush_o   :   $(IO)stdiolib_h
+# $(IO)fgetc_o    :   $(IO)stdiolib_h
+# $(IO)fgetpos_o  :   $(IO)stdiolib_h
+# $(IO)fgets_o    :   $(IO)stdiolib_h
+# $(IO)fileno_o   :   $(IO)stdiolib_h
+# $(IO)fopen_o    :   $(IO)stdiolib_h
+# $(IO)fprintf_o  :   $(IO)stdiolib_h
+# $(IO)fputc_o    :   $(IO)stdiolib_h
+# $(IO)fputs_o    :   $(IO)stdiolib_h
+# $(IO)fread_o    :   $(IO)stdiolib_h
+# $(IO)freopen_o  :   $(IO)stdiolib_h
+# $(IO)fscanf_o   :   $(IO)stdiolib_h
+# $(IO)fseek_o    :   $(IO)stdiolib_h
+# $(IO)fsetpos_o  :   $(IO)stdiolib_h
+# $(IO)ftell_o    :   $(IO)stdiolib_h
+# $(IO)fwrite_o   :   $(IO)stdiolib_h
+# $(IO)getc_o     :   $(IO)stdiolib_h
+# $(IO)getchar_o  :   $(IO)stdiolib_h
+# $(IO)gets_o     :   $(IO)stdiolib_h
+# $(IO)getw_o     :   $(IO)stdiolib_h
+# $(IO)perror_o   :   $(IO)stdiolib_h
+# $(IO)printf_o   :   $(IO)stdiolib_h
+# $(IO)putc_o     :   $(IO)stdiolib_h
+# $(IO)putchar_o  :   $(IO)stdiolib_h
+# $(IO)puts_o     :   $(IO)stdiolib_h
+# $(IO)putw_o     :   $(IO)stdiolib_h
+# $(IO)remove_o   :   $(IO)stdiolib_h
+# $(IO)rewind_o   :   $(IO)stdiolib_h
+# $(IO)scanf_o    :   $(IO)stdiolib_h
+# $(IO)setbuf_o   :   $(IO)stdiolib_h
+# $(IO)setvbuf_o  :   $(IO)stdiolib_h
+# $(IO)sprintf_o  :   $(IO)stdiolib_h
+# $(IO)sscanf_o   :   $(IO)stdiolib_h
+# $(IO)tmpfile_o  :   $(IO)stdiolib_h
+# $(IO)tmpnam_o   :   $(IO)stdiolib_h
+# $(IO)ungetc_o   :   $(IO)stdiolib_h
+# $(IO)vfprintf_o :   $(IO)stdiolib_h
+# $(IO)vprintf_o  :   $(IO)stdiolib_h
+# $(IO)vsprintf_o :   $(IO)stdiolib_h
+#   Character testing and conversion routines
+$(CH)ctype_o    :   $(I)ctype_h
+$(CH)isalnum_o  :   $(I)ctype_h
+$(CH)isalpha_o  :   $(I)ctype_h
+$(CH)isascii_o  :   $(I)ctype_h
+$(CH)iscntrl_o  :   $(I)ctype_h
+$(CH)iscsym_o   :   $(I)ctype_h
+$(CH)iscsymf_o  :   $(I)ctype_h
+$(CH)isdigit_o  :   $(I)ctype_h
+$(CH)isgraph_o  :   $(I)ctype_h
+$(CH)islower_o  :   $(I)ctype_h
+$(CH)isprint_o  :   $(I)ctype_h
+$(CH)ispunct_o  :   $(I)ctype_h
+$(CH)isspace_o  :   $(I)ctype_h
+$(CH)isupper_o  :   $(I)ctype_h
+$(CH)isxdigit_o :   $(I)ctype_h
+$(CH)toascii_o  :   $(I)ctype_h
+$(CH)tolower_o  :   $(I)ctype_h
+$(CH)toupper_o  :   $(I)ctype_h
+#   dirent_h routines
+$(DIR)closedir_o:   $(I)dirent_h
+$(DIR)opendir_o :   $(I)qdos_h      $(I)dirent_h    $(I)string_h    $(I)stdlib_h \
+                    $(I)errno_h
+$(DIR)readdir_o :   $(I)qdos_h      $(I)dirent_h    $(I)errno_h     $(I)string_h
+$(DIR)rewinddir_o:  $(I)dirent_h
+$(DIR)seekdir_o :   $(I)dirent_h
+$(DIR)telldir_o :   $(I)dirent_h
+#   fcntl_h routines
+$(F)_chkufb_o   :   $(I)fcntl_h     $(I)errno_h
+$(F)_conread_o  :   $(I)fcntl_h     $(I)qdos_h
+$(F)_conwrite_o :   $(I)fcntl_h     $(I)qdos_h      $(I)string_h
+$(F)_creat_o    :   $(I)fcntl_h
+$(F)_doopene_o  :   $(I)qdos_h
+$(F)_newufb_o   :   $(I)fcntl_h     $(I)stdlib_h    $(I)string_h    $(I)errno_h
+$(F)_open_o     :   $(I)fcntl_h     $(I)qdos_h      $(I)ctype_h \
+                    $(I)errno_h     $(I)unistd_h
+$(F)_openufb_o  :   $(I)fcntl_h     $(I)errno_h
+$(F)fcntl_o     :   $(I)fcntl_h     $(I)errno_h
+$(F)fdmode_o    :   $(I)qdos_h      $(I)fcntl_h     $(I)stdio_h     $(I)errno_h
+$(F)iomode_o    :   $(I)fcntl_h
+$(F)opene_o     :   $(I)qdos_h      $(I)fcntl_h
+$(F)qopen_o     :   $(I)fcntl_h     $(I)libgen_h   $(I)string_h     $(I)sys_stat_h
+#   libgen_h routines
+$(G)_streadd_o  :   $(I)libgen_h    $(I)ctype_h     $(I)string_h    $(I)qdos_h
+$(G)gmatch_o    :   $(I)libgen_h
+$(G)strcadd_o   :   $(I)libgen_h    $(I)string_h    $(I)qdos_h
+$(G)strccpy_o   :   $(I)libgen_h
+$(G)strtrns_o   :   $(I)libgen_h
+#   Routines from grp.h
+$(GR)getgrent_o :   $(I)grp_h       $(I)stddef_h
+$(GR)getgrnam_o:    $(I)grp_h       $(I)string_h
+$(GR)getgrgid_o :   $(I)grp_h       $(I)stddef_h
+#   Lattice compatibility routines
+$(LT)dqsort_o   :   $(I)stdlib_h
+$(LT)envunpk_o  :   $(I)stdlib_h    $(I)string_h    $(I)unistd_h
+$(LT)fqsort_o   :   $(I)stdlib_h    $(I)sys_types_h
+$(LT)getch_o   :    $(I)qdos_h
+$(LT)getfnl_o   :   $(I)qdos_h      $(I)errno_h     $(I)string_h
+$(LT)getmem_o   :   $(I)stdlib_h
+$(LT)getml_o    :
+$(LT)kbhit_o    :   $(I)qdos_h
+$(LT)lqsort_o   :   $(I)stdlib_h
+$(LT)putch_o    :   $(I)qdos_h
+$(LT)rlsmem_o   :
+$(LT)rlsml_o    :   $(I)unistd_h    $(I)assert_h    $(I)errno_h     $(I)qdos_h
+$(LT)setnbf_o   :   $(I)stdio_h
+$(LT)sizmem_o   :
+$(LT)sqsort_o   :   $(I)stdlib_h
+$(LT)tqsort_o   :   $(I)stdlib_h    $(I)string_h
+#   Routines from locale.h
+$(LC)setlocale_o:   $(I)locale_h    $(I)limits_h
+#   Miscellaneous stuff with no other home
+$(MS)assert_o  :    $(I)assert_h    $(I)qdos_h      $(I)string_h    $(I)unistd_h
+$(MS)cprintf_o :    $(I)stdio_h     $(I)qdos_h
+$(MS)cscanf_o  :    $(I)stdio_h     $(I)qdos_h
+$(MS)fopene_o   :   $(I)stdio_h     $(I)fcntl_h
+$(MS)frexp_o   :    $(I)float_h     $(I)math_h
+$(MS)iscon_o   :
+$(MS)ldexp_o   :    $(I)float_h     $(I)math_h      $(I)errno_h
+$(MS)matherr_o :    $(I)math_h
+$(MS)modf_o    :    $(I)float_h     $(I)math_h
+$(MS)pclose_o  :    $(I)unistd_h    $(I)qdos_h      $(I)stdio_h \
+                    $(I)fcntl_h     $(I)errno_h
+$(MS)popen_o   :    $(I)unistd_h    $(I)qdos_h      $(I)stdio_h \
+                    $(I)errno_h     $(I)fcntl_h     $(I)stdlib_h
+$(MS)rename_o  :    $(I)qdos_h      $(I)stdio_h     $(I)errno_h
+$(MS)wait_o    :
+#   Routines from pwd.h
+$(PW)getpwent_o :   $(I)pwd_h       $(I)stddef_h
+$(PW)getpwnam_o:    $(I)pwd_h       $(I)string_h
+$(PW)getpwuid_o :   $(I)pwd_h       $(I)stddef_h
+#Routines froms etjmp.h
+$(SJ)setjmp_o:
+#   Routines from signal.h
+$(SIG)_current_o    : $(I)signal_h  $(I)sys_Signal_h $(I)unistd_h
+$(SIG)_default_o    : $(I)signal_h  $(I)sys_signal_h
+$(SIG)_onsigkill_o  : $(I)signal_h  $(I)sys_signal_h $(I)qdos_h $(I)errno_h
+$(SIG)_samask_o     : $(I)sys_signal_h
+$(SIG)_uval_o       : $(I)sys_signal_h
+$(SIG)_signal_o     : $(I)signal_h  $(I)sys_signal_h
+$(SIG)alarm_o       : $(I)signal_h  $(I)sys_signal_h $(I)unistd_h  $(I)qdos_h
+$(SIG)checksig_o    : $(I)signal_h  $(I)sys_signal_h
+$(SIG)kill_o        : $(I)signal_h  $(I)sys_signal_h
+$(SIG)pause_o       : $(I)unistd_h  $(I)errno_h     $(I)qdos_h
+$(SIG)psignal_o     : $(I)signal_h  $(I)string_h    $(I)stdlib_h    $(I)stdio_h
+$(SIG)raise_o       : $(I)signal_h  $(I)sys_signal_h $(I)unistd_h
+$(SIG)sendsig_o     : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sigaction_o   : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sigaddset_o   : $(I)signal_h  $(I)sys_Signal_h $(I)errno_h
+$(SIG)sigcurrent_o  : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sigdelset_o   : $(I)signal_h  $(I)sys_signal_h $(I)errno_h
+$(SIG)sigdefault_o  : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sigemptyset_o : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sigfillset_o  : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sighold_o     : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sigignore_o   : $(I)signal_h
+$(SIG)siginit_o     : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sigismember_o : $(I)signal_h  $(I)sys_signal_h $(I)errno_h
+$(SIG)siglongjmp_o  : $(I)signal_h  $(I)sys_signal_h $(I)setjmp_h
+$(SIG)signal_o      : $(I)signal_h  $(I)sys_signal_h $(I)errno_h
+$(SIG)sigpause_o    : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sigpending_o  : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sigprocmaks_o : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sigrelse_o    : $(I)signal_h  $(I)sys_signal_h
+$(SIG)sigset_o      : $(I)signal_h  $(I)sys_signal_h $(I)errno_h
+$(SIG)sigsetjmp_o   : $(I)signal_h  $(I)sys_signal_h $(I)setjmp_h
+$(SIG)sigsuspend_o  : $(I)signal_h  $(I)sys_signal_h $(I)errno_h     $(I)sms_h
+$(SIG)timer_o       : $(I)signal_h  $(I)sys_signal_h
+
+#   Routines from sys/stat.h
+$(ST)_fakeino_o : $(I)sys_stat_h $(I)qdos_h     $(I)channels_h
+$(ST)_fstat_o   : $(I)sys_stat_h $(I)qdos_h     $(I)channels_h  $(I)fcntl_h \
+                  $(I)string_h   $(I)errno_h
+$(ST)_stat_o    : $(I)sys_stat_h $(I)qdos_h     $(I)errno_h     $(I)fcntl_h \
+                  $(I)string_h   $(I)unistd_h
+$(ST)chmod_o    : $(I)sys_stat_h $(I)qdos_h     $(I)fcntl_h     $(I)unistd_h
+$(ST)fchmod_o   : $(I)sys_stat_h $(I)qdos_h     $(I)errno_h     $(I)fcntl_h \
+                  $(I)unistd_h  
+$(ST)fstat_o    : $(I)sys_stat_h $(I)errno_h    $(I)fcntl_h
+$(ST)mkdir_o    : $(I)sys_stat_h $(I)qdos_h     $(I)fcntl_h     $(I)errno_h \
+                  $(I)unistd_h   $(I)string_h   $(I)limits_h
+$(ST)mkfifo_o   : $(I)sys_stat_h 
+$(ST)mknod_o    : $(I)sys_stat_h $(I)fcntl_h    $(I)errno_h     $(I)unistd_h \
+                  $(I)sys_types_h
+$(ST)umask_o    : $(I)sys_stat_h $(I)sys_types_h
+#   String handling routines
+$(S)_memcmp_o   : $(I)string_h    $(I)stddef_h
+$(S)_memcpy_o   : $(I)string_h    $(I)memory_h  $(I)stddef_h
+$(S)_memset_o   : $(I)string_h    $(I)memory_h  $(I)stddef_h
+$(S)_strcat_o   : $(I)string_h
+$(S)_strcpy_o   : $(I)string_h  $(I)limits_h
+$(S)_strlen_o   : $(I)string_h
+$(S)memccpy_o   : $(I)string_h    $(I)sys_types_h
+$(S)memchr_o    : $(I)string_h    $(I)stddef_h
+$(S)stccpy_o    : $(I)string_h
+$(S)stpblk_o    : $(I)string_h    $(I)ctype_h
+$(S)stpcpy_o    : $(I)string_h
+$(S)strbpl_o    : $(I)string_h
+$(S)strchr_o    : $(I)string_h  $(I)limits_h
+$(S)strcmp_o    : $(I)string_h
+$(S)strcoll_o   : $(I)string_h
+$(S)strcspn_o   : $(I)string_h  $(I)sys_types_h
+$(S)strdup_o    : $(I)string_h  $(I)stdlib_h
+$(S)strerror_o  : $(I)string_h
+$(G)strfnd_o    : $(I)string_h    $(I)ctype_h
+$(S)stricmp_o   : $(I)string_h  $(I)ctype_h
+$(S)strins_o    : $(I)string_h
+$(S)strlwr_o    : $(I)string_h  $(I)ctype_h
+$(S)strmfe_o    : $(I)string_h
+$(S)strmfn_o    : $(I)string_h
+$(S)strmfp_o    : $(I)string_h
+$(S)strncat_o   : $(I)string_h  $(I)sys_types_h
+$(S)strncmp_o   : $(I)string_h  $(I)sys_types_h
+$(S)strncpy_o   : $(I)string_h  $(I)sys_types_h
+$(S)strnicmp_o  : $(I)string_h  $(I)ctype_h     $(I)sys_types_h
+$(S)strpbrk_o   : $(I)string_h
+$(S)strrchr_o   : $(I)string_h  $(I)limits_h
+$(S)strpos_o    : $(I)string_h 
+$(S)strrev_o    : $(I)string_h
+$(S)strrpos_o   : $(I)string_h
+$(S)strrstrip_o : $(I)string_h
+$(S)strspn_o    : $(I)string_h  $(I)sys_types_h
+$(S)strstr_o    : $(I)string_h
+$(S)strstrip_o  : $(I)string_h
+$(S)strtok_o    : $(I)string_h
+$(S)strupr_o    : $(I)string_h    $(I)ctype_h
+$(S)strxfrm_o   : $(I)string_h
+$(S)syserr_o    :
+#   stdlib routines
+$(STD)_abort_o  :   $(I)stdlib_h    $(I)signal_h
+$(STD)_calloc_o :   $(I)stdlib_h    $(I)string_h    $(I)assert_h
+$(STD)_putenv_o :   $(I)stdlib_h    $(I)string_h    $(I)unistd_h  $(I)qdos_h
+$(STD)_qsort_o  :   $(I)stdlib_h    $(I)string_h
+$(STD)_realloc_o:   $(I)stdlib_h    $(I)string_h 
+$(STD)_strtod_o :   $(I)stdlib_h    $(I)ctype_h     $(I)errno_h \
+                    $(I)math_h      $(I)stddef_h
+$(STD)_strtoul_o:   $(I)stdlib_h    $(I)ctype_h   $(I)errno_h     $(I)limits_h
+$(STD)abs_o     :   $(I)stdlib_h
+$(STD)atof_o    :   $(I)stdlib_h
+$(STD)atoi_o    :   $(I)stdlib_h
+$(STD)atol_o    :   $(I)stdlib_h
+$(STD)bsearch_o :   $(I)stdlib_h
+$(STD)div_o     :   $(I)stdlib_h
+$(STD)free_o    :   $(I)stdlib_h    $(I)qdos_h      $(I)assert_h
+$(STD)getenv_o  :   $(I)stdlib_h    $(I)string_h    $(I)unistd_h
+$(STD)getopt_o  :   $(I)stdlib_h    $(I)stdio_h     $(I)stddef_h    $(I)string_h
+$(STD)getpass_o :   $(I)stdlib_h    $(I)string_h    $(I)limits_h \
+                    $(I)errno_h     $(I)qdos_h
+$(STD)isatty_o  :   $(I)stdlib_h    $(I)qdos_h      $(I)fcntl_h
+$(STD)itoa_o    :   $(I)stdlib_h    $(I)qdos_h
+$(STD)labs_o    :   $(I)stdlib_h
+$(STD)ldiv_o    :   $(I)stdlib_h
+$(STD)malloc_o  :   $(I)stdlib_h    $(I)assert_h    $(I)unistd_h    $(I)qdos_h
+$(STD)mktemp_o  :   $(I)stdlib_h    $(I)string_h    $(I)qdos_h
+$(STD)rand_o    :   $(I)stdlib_h
+$(STD)strtod_aux_o: 
+$(STD)strtol_o  :   $(I)stdlib_h    $(I)ctype_h
+$(STD)system_o  :   $(I)stdlib_h    $(I)qdos_h      $(I)errno_h\
+                    $(I)stdio_h     $(I)string_h    $(I)unistd_h
+$(STD)ttyname_o :   $(I)stdlib_h    $(I)fcntl_h
+$(STD)wcstombs_o:   $(I)stdlib_h    $(I)string_h
+$(STD)mbstowcs_o:   $(I)stdlib_h    $(I)string_h
+$(STD)mblen_o   :   $(I)stdlib_h
+$(STD)wctomb_o  :   $(I)stdlib_h
+$(STD)mbtowc_o  :   $(I)stdlib_h
+#   Time routines
+$(T)_timeconst_o:   $(I)time_h
+$(T)_timetext_o :   $(I)time_h
+$(T)_asctime_o  :   $(I)time_h      $(I)stdio_h
+$(T)_time_o     :   $(I)time_h      $(I)qdos_h
+$(T)clock_o     :   $(I)time_h
+$(T)ctime_o     :   $(I)time_h
+$(T)difftime_o  :   $(I)time_h
+$(T)gmtime_o    :   $(I)time_h
+$(T)jdate_o     :   $(I)time_h
+$(T)localtime_o :   $(I)time_h
+$(T)mktime_o    :   $(I)time_h      $(I)ctype_h     $(I)limits_h    \
+                    $(I)stdlib_h    $(I)string_h
+$(T)strftime_o  :   $(I)time_h      $(I)string_h    $(I)stdio_h
+$(T)times_o     :   $(I)sys_times_h
+$(T)utime_o     :   $(I)utime_h     $(I)qdos_h      $(I)fcntl_h     $(I)errno_h \
+                    $(I)time_h      $(I)unistd_h
+#   termios_h routines
+$(TM)cfgetisp_o :   $(I)termios_h
+$(TM)cfgetosp_o :   $(I)termios_h
+$(TM)cfsetisp_o :   $(I)termios_h
+$(TM)cfsetosp_o :   $(I)termios_h
+#   unistd_h routines
+$(USTD)_cd_o    :   $(I)qdos_h      $(I)string_h    $(I)errno_h  \
+                    $(I)stdlib_h    $(I)libgen_h
+$(USTD)_chdir_o :   $(I)unistd_h    $(I)qdos_h
+$(USTD)_close_o :   $(I)unistd_h    $(I)qdos_h      $(I)fcntl_h     $(I)errno_h
+$(USTD)_dup2_o  :   $(I)unistd_h    $(I)qdos_h      $(I)fcntl.h     $(I)errno_h
+$(USTD)_exit_o  :   $(I)unistd_h    $(I)qdos_h      $(I)string_h
+$(USTD)_forkexec_o: $(I)unistd_h    $(I)qdos_h      $(I)fcntl_h \
+                    $(I)string_h    $(I)errno_h
+$(USTD)_fsync_o :   $(I)unistd_h    $(I)qdos_h      $(I)fcntl_h     $(I)errno_h
+$(USTD)_read_o  :   $(I)unistd_h    $(I)qdos_h      $(I)fcntl_h     \
+                    $(I)errno_h     $(I)stdlib_h \
+                    $(I)signal_h    $(I)sys_signal_h
+$(USTD)_unlink_o:   $(I)unistd_h    $(I)qdos_h      $(I)errno_h
+$(USTD)_write_o :   $(I)unistd_h    $(I)qdos_h      $(I)fcntl_h \
+                    $(I)errno_h     $(I)signal_h    $(I)sys_signal_h
+$(USTD)access_o :   $(I)unistd_h    $(I)errno_h     $(I)sys_stat_h
+$(USTD)chown_o  :   $(I)unistd_h    $(I)sys_stat_h
+$(USTD)dup_o    :   $(I)unistd_h    $(I)qdos_h      $(I)fcntl_h     $(I)errno_h
+$(USTD)execl_o  :   $(I)unistd_h    $(I)qdos_h
+$(USTD)execlp_o :   $(I)unistd_h    $(I)qdos_h
+$(USTD)execv_o  :   $(I)unistd_h    $(I)qdos_h
+$(USTD)execvp_o :   $(I)unistd_h    $(I)qdos_h
+$(USTD)forkl_o  :   $(I)unistd_h    $(I)qdos_h
+$(USTD)forklp_o :   $(I)unistd_h    $(I)qdos_h
+$(USTD)forkv_o  :   $(I)unistd_h    $(I)qdos_h
+$(USTD)forkvp_o :   $(I)unistd_h    $(I)qdos_h
+$(USTD)fpathconf_o: $(I)unistd_h    $(I)errno_h
+$(USTD)fsync_o :    $(I)unistd_h
+$(USTD)ftruncate_o: $(I)unistd_h    $(I)qdos_h      $(I)fcntl_h     $(I)errno_h
+$(USTD)getcwd_o :   $(I)unistd_h    $(I)qdos_h
+$(USTD)getlogin_o : $(I)unistd.h
+$(USTD)getpid_o  :
+$(USTD)getuid_o  :
+$(USTD)link_o   :   $(I)unistd_h    $(I)errno_h     $(I)sys_stat_h
+$(USTD)lsbrk_o  :   $(I)unistd_h    $(I)qdos_h      $(I)errno_h \
+                    $(I)assert_h    $(I)signal_h    $(I)sys_signal_h
+$(USTD)lseek_o  :   $(I)unistd_h    $(I)qdos_h      $(I)fcntl_h     $(I)errno_h
+$(USTD)openpipe_o:  $(I)unistd.h    $(I)qdos_h      $(I)fcntl_h     $(I)errno_h
+$(USTD)pathconf_o : $(I)unistd_h    $(I)errno_h
+$(USTD)rmdir_o  :   $(I)unistd_h    $(I)errno_h     $(I)sys_stat_h  $(I)sys_types_h
+$(USTD)sbrk_o   :   $(I)unistd_h
+$(USTD)sleep_o  :   $(I)unistd_h    $(I)qdos_h      $(I)time_h 
+$(USTD)stime_o  :   $(I)unistd_h    $(I)qdos_h
+$(USTD)sync_o   :   $(I)unistd_h
+$(USTD)truncate_o:  $(I)unistd_h    $(I)fcntl_h
+#   QDOS Miscellaneous
+$(Q)_dtoqlfp_o  :   $(I)float_h
+$(Q)_fqstat_o   :   $(I)qdos_h
+$(Q)_getcd_o    :   $(I)qdos_h      $(I)stdlib_h    $(I)string_h    $(I)errno_h
+$(Q)_mkname_o   :   $(I)qdos_h      $(I)unistd_h    $(I)string_h    $(I)errno_h
+$(Q)_stackerr_o :   $(I)qdos_h      $(I)string_h    $(I)stdio_h $(I)stdlib_h
+$(Q)argfree_o   :   $(I)qdos_h      $(I)stdlib_h
+$(Q)argpack_o   :   $(I)qdos_h      $(I)libgen_h    $(I)string_h    $(I)stdlib_h
+$(Q)argunpack_o :   $(I)qdos_h      $(I)ctype_h     $(I)libgen_h \
+                    $(I)stdlib_h    $(I)string_h
+$(Q)beep_o      :   $(I)qdos_h
+$(Q)chchown_o   :
+$(Q)chddir_o    :   $(I)qdos_h
+$(Q)chpdir_o    :   $(I)qdos_h
+$(Q)conget_o    :   $(I)qdos_h
+$(Q)fgetchid_o  :   $(I)qdos_h      $(I)stdio_h
+$(Q)fnmatch_o   :   $(I)qdos_h      $(I)libgen_h    $(I)ctype_h     $(I)string_h
+$(Q)fqstat_o    :   $(I)qdos_h      $(I)fcntl_h 
+$(Q)fusechid_o  :   $(I)qdos_h      $(I)stdio_h
+$(Q)getcdd_o    :   $(I)qdos_h
+$(Q)getchid_o   :   $(I)qdos_h      $(I)fcntl_h
+$(Q)getchown_o  :
+$(Q)getcname_o  :   $(I)qdos_h      $(I)channels_h  $(I)string_h
+$(Q)getcpd_o    :   $(I)qdos_h
+$(Q)isdevice_o  :   $(I)qdos_h 
+$(Q)isdirchid_o :   $(I)qdos_h      $(I)channels_h
+$(Q)isdirdev_o  :   $(I)qdos_h      $(I)string_h
+$(Q)isnoclose_o :   $(I)qdos_h      $(I)fcntl_h
+$(Q)itoqlfp_o   :
+$(Q)keyrow_o    :   $(I)qdos_h
+$(Q)ltoqlfp_o   :
+$(Q)openqdir_o  :   $(I)qdos_h      $(I)errno_h
+$(Q)poserr_o    :   $(I)qdos_h      $(I)stdio_h     $(I)errno_h
+$(Q)qdirread_o  :   $(I)qdos_h      $(I)stdlib_h    $(I)string_h    $(I)errno_h
+$(Q)qdos1_o     :
+$(Q)qdos2_o     :
+$(Q)qdos3_o     :
+$(Q)qdirsort_o  :   $(I)qdos_h      $(I)ctype_h     $(I)string_h
+$(Q)qforkl_o    :   $(I)qdos_h
+$(Q)qforklp_o   :   $(I)qdos_h
+$(Q)qforkv_o    :   $(I)qdos_h
+$(Q)qforkvp_o   :   $(I)qdos_h
+$(Q)qinstrn_o   :
+$(Q)qlfptod_o   :   $(I)float_h
+$(Q)qlfptof_o   :   $(I)qdos_h      $(I)float_h
+$(Q)qlmknam_o   :   $(I)string_h    $(I)libgen_h    $(I)errno_h
+$(Q)qlstrtoc_o  :
+$(Q)qstrcat_o   :   $(I)qdos_h      $(I)string_h
+$(Q)qstrchr_o   :   $(I)qdos_h      $(I)string_h
+$(Q)qstrcmp_o   :   $(I)qdos_h
+$(Q)qstrcpy_o   :   $(I)qdos_h      $(I)string_h
+$(Q)qstricmp_o  :   $(I)qdos_h
+$(Q)qstrlen_o   :   $(I)qdos_h      $(I)string_h
+$(Q)qstrncat_o  :   $(I)qdos_h      $(I)string_h
+$(Q)qstrncmp_o  :   $(I)qdos_h
+$(Q)qstrncpy_o  :   $(I)qdos_h      $(I)string_h
+$(Q)qstrnicmp_o :   $(I)qdos_h
+$(Q)qstat_o     :   $(I)qdos_h      $(I)fcntl_h     $(I)unistd_h
+$(Q)readqdir_o  :   $(I)qdos_h      $(I)string_h    $(I)errno_h
+$(Q)stackchk_o  :   $(I)qdos_h
+$(Q)stackrep_o  :   $(I)qdos_h
+$(Q)sound_o     :   $(I)qdos_h      $(I)std_h
+$(Q)usechid_o   :   $(I)qdos_h      $(I)fcntl_h
+$(Q)waitfor_o   :
+$(Q)wtoqlfp_o   :
+
+$(QP)readmove_o :   $(I)qdos_h      $(I)qptr_h      $(I)channels_h
+                                                         

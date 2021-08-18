@@ -1,0 +1,10 @@
+Changes by Thierry Godefroy:
+
+27/09/00: 	- Implemented GX* functions for qdos-gcc math (these functions
+		  do not tidy the stack on exit).
+		- Corrected a bug in Xbfinc.s (tidy up code: the return address
+		  was put in a1 but the jump was done using a0 !).
+		- Small optimizations in Xdiv.s (addq.l #n,sp instead of
+		  lea n(sp),sp when n <= 8).
+
+01/10/00:	- GXmul.s and GXdiv.s written.

@@ -1,0 +1,7 @@
+Changes by Thierry Godefroy:
+
+12/11/00:	changed "char type" parameter to "unsigned char type" into
+		_fstat.c SimpleTypeToModeT() and BlockTypeToModeT() functions
+		as gcc does not like to compare a signed char with a signed
+		value in "switch ... case" construct (bug reported by
+		Jonathan Hudson).

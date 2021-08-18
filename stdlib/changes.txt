@@ -1,0 +1,7 @@
+Changes by Thierry Godefroy:
+
+20/09/00: 	Added "#" as the first line of _qsort.x and _realloc.x
+		so to force their pre-processing by cpp (via the as script).
+
+		Changed the "LN" macro in strtod_aux.x so to work around a
+		bug in GNU cpp.

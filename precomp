@@ -1,0 +1,42 @@
+#!/bin/sh
+
+BASE=`pwd`
+
+# Extract the pre-compiled binaries
+
+bzip2 -cd "$BASE/pre-compiled.tar.bz2" | tar -xf "-"
+
+# Copy all the binaries that should be compiled with QMAC or GWASS...
+
+DIRS="init defaults qdos/qptr/sprite"
+for j in $DIRS ; do
+	cd "$BASE/pre-compiled/$j"
+	for i in * ; do
+		if ! [ -f "$BASE/$j/$i" ] ; then
+#			echo "$i --> $BASE/$j/"
+			cp -f "$i" "$BASE/$j/"
+		fi
+	done
+done
+
+# Now copy pre-compiled binaries into directories with missing sources...
+# qdos/trap2/ioa_cname.o will still be missing (also missing in libc_a v4.24i).
+
+DIRS="defaults stdio string time unistd qdos/misc"
+for j in $DIRS ; do
+	cd "$BASE/pre-compiled/missing/$j"
+	for i in * ; do
+		if ! [ -f "$BASE/$j/$i" ] ; then
+#			echo "$i --> $BASE/$j/"
+			cp -f "$i" "$BASE/$j/"
+		fi
+	done
+done
+
+# Remove the "pre-compiled/" directory
+
+rm -rf "$BASE/pre-compiled/"
+
+# We are done !
+
+exit 0

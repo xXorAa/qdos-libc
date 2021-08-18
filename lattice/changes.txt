@@ -1,0 +1,6 @@
+Changes by Thierry Godefroy:
+
+22/09/00:	Changed the extension separator from "_" to "." into
+		the #include directives.
+25/09/00:	added a cast into the qsort() call of lqsort.c so
+		to remove a gcc compiler warning.

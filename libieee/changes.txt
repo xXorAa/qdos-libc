@@ -1,0 +1,54 @@
+Changes by Thierry Godefroy:
+
+- In ieeeconf.h, the EDOM and ERANGE equates have been added when HW_FPU
+  is not defined because they are needed anyway.
+
+- Added the "AS68" define in ieeeconf.h as an alias to "ACK" IOT switch
+  on the as68 syntax compliance.
+
+- Because of a bug in GNU cpp (NOT the version bundled with C68, but the
+  newest gcc one), the "LN" macroes (either that should expand to "l" or
+  "w" but actually expand as " l" and " w" with the buggy GNU cpp), have
+  been removed and replaced by one macro for each instruction (e.g. the
+  "MOVE_" macro expanding either in "move.l" or "move.w").
+  The changed files are: frexp.s, ldexp.s, modf.s, modff.s and Xerror.s.
+
+- #ifdef GCC_MATH ... #endif sections added so to implement math
+  functions compatible with qdos-gcc (no stack tidying on exit).
+
+- Added #include "ieeeconf.h" to Ydftoul.s.
+
+- Added the missing "END" macro to some files.
+
+- General source tidying up (tabulation) and potential optimisations (in
+  the event that a non-optimizing assembler will be used one day or another;
+  E.g. addq #n instead of add.l #n, moveq #n instead of move.l #n, etc...).
+
+- Actual code optimization: moveq #0,dn instead of clr.l dn (faster on
+  68008, as fast on better processors), bset #23,dn instead of
+  or.l #0x800000,dn and bset #20,dn instead of or.l #0x100000,dn (one less
+  word in opcode, 4 less clock cycles, 8 less on 68008), addq.l #n,sp instead
+  of lea n(sp),sp (one less word in opcode, 8 less clock cycles on 68008),
+  tst.w dn instead of cmp.w #0,dn (in Xnorm4.s and Xnorm8.s !?!), two
+  subq.l/addq.l #8,sp instead of sub.l/add.l #16,sp (one less word in opcode,
+  8 less clock cycles on 68008, same clock cycles number on better processors).
+  In Ysftodf.s, replaced:
+	lea 	4(sp),a0		! value address
+	subq.l	#8,sp			! reserve space for result
+	move.l	sp,a1
+	move.l	(a0),(a1)		! move across value
+	clr.l	4(a1)			! clear second 4 bytes
+  by smaller and faster (8 less cycles on 68000, 16 on 68008):
+	lea	4(sp),a0		! value address
+	clr.l	-(sp)			! reserve and clear second 4 bytes
+	move.l	(a0),-(sp)		! move across value
+	move.l	sp,a1
+
+- Replaced occurences of roxl #1,-(a0) by the _VALID_ roxl -(a0)
+
+
+- Put gcc-qdos specific stuff in new files:	GYdfadd.s GYdfdiv.s GYdfltodf.s
+						GYdfmul.s GYdftol.s GYdftosf.s
+						GYsfadd.s GYsfdiv.s GYsfltosf.s
+						GYsfmul.s GYsftodf.s GYsftol.s
+  Files still with with GCC_MATH_FULL in them: all others Y*.s plus *cmp.s

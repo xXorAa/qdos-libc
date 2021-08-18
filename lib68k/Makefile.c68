@@ -1,0 +1,48 @@
+#	Makefile for general support routines for c68
+#
+#	(Ensure correct version of alloca used for sizeof(int)
+#	that the compiler is built to use).
+
+SRC =   Xalloca16$(S)s  Xalloca32$(S)s \
+        Xdiv$(S)s Xmul$(S)s \
+        stackcheck$(S)s stmttrace$(S)s \
+        Xbfget$(S)s  Xbfput$(S)s  Xbfasop$(S)s  Xbfinc$(S)s \
+        Xllmul$(S)s  Xlldiv$(S)s  Xllshift$(S)s \
+        68kconf$(S)h \
+        Makefile  test32$(S)c  test64$(S)c  wrap32$(S)s  wrap64$(S)s
+
+# OBJ =   Xalloca32$(S)o Xdivs$(S)o Xdivu$(S)o Xmuls$(S)o Xmulu$(S)o
+OBJ =   Xalloca32$(S)o Xdiv$(S)o Xmul$(S)o stackcheck$(S)o stmttrace$(S)o \
+        Xbfget$(S)o  Xbfput$(S)o  Xbfasop$(S)o \
+        Xllmul$(S)o  Xlldiv$(S)o  Xllshift$(S)o
+
+XOBJ = Xalloca16$(S)o
+
+CC = cc -c -maxerr=1
+AS = cc -c
+LN = cc -ms -maxerr=1
+AR = ar
+LIB = /usr/lib
+#S=.
+S=_
+
+lib68k : ${OBJ}  test32 test64
+
+install:	${OBJ}
+	ar crv ${LIB}/libc.a ${OBJ}
+
+#   Test program for 32 bit routines
+test32 : test32$(S)c ${OBJ} wrap32$(S)o
+	$(LN) -o test32 test32$(S)c ${OBJ} wrap32$(S)o
+
+#   Test program for 64 bit routines
+test64 : test64$(S)c ${OBJ} wrap64$(S)o
+	$(LN) -o test64 test64$(S)c ${OBJ} wrap64$(S)o -maxerr=1
+
+#
+zip:    zipsrc
+
+zipsrc: zipsrc$(S)zip
+
+zipsrc$(S)zip: $(SRC)
+    zip lib68k$(S)zip $(SRC)

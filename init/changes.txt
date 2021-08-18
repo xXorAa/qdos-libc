@@ -1,0 +1,18 @@
+Changes by Thierry Godefroy:
+
+22/09/00:	Changed the extension separator from "_" to "." into
+		the #include directives.
+
+13/10/00:	Changed the thingtrap code so that the thing utility vector is
+		always used when present (the TRAP code is only tried when no
+		utility vector is found): this cures the problems encountered
+		with some badly written things that don't like the sms_*()
+		functions to enter supervisor mode and also prevents problems
+		with some buggy SMSQ/E versions where the TRAP thing code had
+		problems...
+		More sanity check is also made on the thing utility vector.
+
+12/11/00:	changed "auto char key" to "auto unsigned char key" into
+		conqpac.c consetup_qpac_poll() function	as gcc does not like to
+		compare a signed char with a signed value in "switch ... case"
+		construct.

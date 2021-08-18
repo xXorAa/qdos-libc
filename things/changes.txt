@@ -1,0 +1,7 @@
+Changes by Thierry Godefroy:
+
+25/09/00:	smsuthg.s optimized and possible problem fixed (no
+		D2 parameter initialisation when a NULL pointer was
+		passed, return of random parameter values when the
+		call was leading to an error).
+14/10/00:	Some more optimizations...

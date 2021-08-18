@@ -1,0 +1,6 @@
+Changes by Thierry Godefroy:
+
+24/09/00:	added a #ifndef NDEBUG in site.h so to avoid NDEBUG
+		redefinition and corresponding cpp warnings...
+14/10/00:	added a "const" in fsetpos() and fwrite() declarations
+		IOT match stdio.h.
