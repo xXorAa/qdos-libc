@@ -26,15 +26,15 @@
 #   1st October 2000	TG - Changed for qdos-gcc math specific functions.
 
 
-P = /usr/local/qdos/bin/
+P = /usr/local/qdos-gcc/bin/
 I = ./include/
-LIBDIR = /usr/local/qdos/lib/
+LIBDIR = /usr/local/qdos-gcc/lib/
 
-CC = /usr/local/qdos/bin/cc
-AS = /usr/local/qdos/bin/as
-MAC = /usr/local/qdos/bin/qmac
-LD = /usr/local/qdos/bin/ld
-SLB = /usr/local/qdos/bin/slb
+CC = /usr/local/qdos-gcc/bin/cc
+AS = /usr/local/qdos-gcc/bin/as
+MAC = /usr/local/qdos-gcc/bin/qmac
+LD = /usr/local/qdos-gcc/bin/ld
+SLB = /usr/local/qdos-gcc/bin/slb
 CP = cp
 RM = rm
 FIND = find
@@ -60,8 +60,8 @@ ASFLAGS = -V
 .SUFFIXES : .x .s .asm .o .rel .hdr .h
 
 # Installation directory.
-LIBDIR = /usr/local/qdos/lib/
-INCDIR = /usr/local/qdos/include/
+LIBDIR = /usr/local/qdos-gcc/lib/
+INCDIR = /usr/local/qdos-gcc/include/
 
 #   Program Initialisation routines
 IN = init/
