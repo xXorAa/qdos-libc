@@ -1,0 +1,357 @@
+#   This is the makefile for the 'estdio' package.
+#
+#   The QDOS version is based on the one supplied for MINIX, with the
+#   minimum amount of change made to make it sueful
+
+#min _MINIX
+CPP     = /usr/lib/cpp -P -D_MINIX
+FPCC    = $(CC)
+CC      = cc
+FPLD    = $(LD)
+LD      = $(CC)
+MAKE    = make
+RANLIB  = echo
+LORDER  = lorder
+TSORT   = tsort
+# CFLAGS= $(Define) $(Include) -LIB -c
+
+#   QDOS
+CFLAGS= -Qstackopt=maximum -Qregframe=a5 -Qwarn=4 -Dconst= -O
+# CFLAGS= -Qstackopt=maximum -Qregframe=a5 -Qwarn=4 -Qnoreg -Qnoopt
+
+Installdir  =INSTALL/
+Testdir     =TEST/
+Fptestdir   =FPTEST/
+Define      =-D_MINIX -D_POSIX_SOURCE
+Include     =
+Libraries   =stdio.a
+MathLibraries =-f
+FPLib       =stdiofp.a
+StdioLib    =stdio.a
+LIBC = 
+
+All   =  README *.x *.c *.g *.h \
+         makefile.cpp makefile.nix makefile.min \
+         $(Testdir)*.c $(Testdir)*.sh \
+         $(Fptestdir)*.c \
+         $(Installdir)*.c $(Installdir)*.sh \
+         $(Installdir)*.txt $(Installdir)*.sit \
+         $(Installdir)*.ans
+
+Everyone = nix min dos
+
+FPOBJ=  _f_cvt_o        _f_fprintf_o    _f_fscanf_o \
+        _f_guard_o      _f_pow10_o      _f_printf_o \
+        _f_scanf_o      _f_sprintf_o    _f_sscanf_o \
+        _f_tvc_o        _f_vfprintf_o   _f_vprintf_o \
+        _f_vsprintf_o
+
+LIBOBJ= _allocbuf_o     _bfs_o          _bread_o \
+        _bwrite_o       _err_o          _errlist_o \
+        _fgetlx_o       _file_o         _fopen_o \
+        _freebuf_o      _in_o           _ioread_o \
+        _iowrite_o      _ipow10_o       _open3_o \
+        _os_o           _out_o          _rename_o \
+        _rlbf_o         _stdio_o        _update_o \
+        _utoa_o         _vfprintf_o     _vfscanf_o \
+        _vscanf_o       _vsscanf_o      _xassert_o \
+        _z_cvt_o        _z_tvc_o        _zatexit_o \
+        _zerr_o         _zout_o         _zrlbf_o \
+        _zwrapup_o      atexit_o        clearerr_o \
+        exit_o \
+        fclose_o        fdopen_o        feof_o \
+        ferror_o        fflush_o        fgetc_o \
+        fgetpos_o       fgets_o         fileno_o \
+        fopen_o         fprintf_o       fputc_o \
+        fputs_o         fread_o         freopen_o \
+        fscanf_o        fseek_o         fsetpos_o \
+        ftell_o         fwrite_o        getc_o \
+        getchar_o       gets_o          getw_o \
+        perror_o        printf_o        putc_o \
+        putchar_o       puts_o          putw_o \
+        remove_o        rewind_o        scanf_o \
+        setbuf_o        setvbuf_o       sprintf_o \
+        sscanf_o        tempnam_o       tmpfile_o       tmpnam_o \
+        ungetc_o        vfprintf_o      vprintf_o \
+        vsprintf_o
+
+NOTISED = ctermid_o     cuserid_o
+
+# .SUFFIXES:.s .c
+# .c.s:
+
+#   QDOS specific options
+
+estdio : qlstdio_a qlstdiofp_a
+
+qlstdio_a : ${LIBOBJ}
+#    slb -crv qlstdio_a ${LIBOBJ}
+
+qlstdiofp_a : ${FPOBJ}
+#    slb -crv _f_qlstdio_a ${FPOBJ}
+
+
+# test:
+#   -cd $(Testdir) ; \
+#   for f in *.c ; do \
+#     n=`basename $$f .c` ; \
+#     $(CC) $(CFLAGS) -I.. $$n.c ; \
+#     $(LD) -o $$n $$n.s ../stdio.a ; \
+#   done
+
+#fptest:
+#   -cd $(Fptestdir) ; \
+#   for f in *.c ; do \
+#     n=`basename $$f .c` ; \
+#     $(FPCC) $(CFLAGS) -I.. $$n.c ; \
+#     $(FPLD) -o $$n $$n.s ../stdiofp.a ../stdio.a $(MathLibraries) ; \
+#   done
+
+#update:
+#   -if test -z "$(LIBC)" ; then \
+#     echo Usage: make update LIBC=library ; \
+#   else \
+#     ar t $(LIBC) | sed -e 's/ //g' | sort > libc.files ; \
+#     ar rv $(LIBC) `ls *.o | comm -12 - libc.files` ; \
+#     rm -f libc.files ; \
+#    $(RANLIB) $(LIBC); \
+#   fi
+
+# Library dependencies
+
+$(FPOBJ) $(LIBOBJ): stdiolib.h ${P}INCLUDE_stdio.h
+
+#Hide:  site.h
+#   rm -f Hidden
+#   -if grep -s "define HIDDEN" site.h ; then \
+#   $(CPP) stub.x >Hidden ; \
+#   for f in `grep '^.define [a-z]' hidden.h | \
+#         sed 's/^.define \([a-z]*\).*/\1/'` ; do \
+#   echo $${f} ; \
+#   sed -e "s/XYZ/$${f}/g" < Hidden > _u_$${f}.x ; \
+#   libpack < _u_$${f}.x > _u_$${f}.s ; \
+#   done ; \
+#   fi
+#   echo -n >Hide
+
+# Put together a library
+
+#FPobjects:$(FPOBJ)
+
+FPorder:    $(FPOBJ) Hide
+    echo -n >FPorder
+    -if test -f Hidden ; then \
+    ls _u_*print*.s _u_*scan*.s >> FPorder ; \
+    fi
+    ls $(FPOBJ) > FPorder.tmp
+    $(LORDER) `cat FPorder.tmp` | $(TSORT) >> FPorder; \
+    rm -f FPorder.tmp FPsort.tmp
+
+FParchive:  FPorder
+    rm -f $(FPLib)
+    ar cr $(FPLib) `cat FPorder`
+    $(RANLIB) stdiofp.a
+
+Liborder:   $(LIBOBJ) Hide
+    echo -n >Liborder
+    -if test -f Hidden ; then \
+    ls _u_*.s >> Liborder ; \
+    fi
+    ls $(LIBOBJ) > Liborder.tmp
+    $(LORDER) `cat Liborder.tmp` | $(TSORT) >> Liborder; \
+    rm -f Liborder.tmp
+
+# stdio $(StdioLib):	Liborder
+#
+#   rm -f $(StdioLib)
+#   ar cr $(StdioLib) `cat Liborder`
+#   $(RANLIB) stdio.a
+
+stdio : stdio.touch
+
+stdio.touch :   ${LIBOBJ}
+    @echo "creating new libc.a"
+    @rm -f ../libc.a ../*/*.touch
+    @ar rc ../libc.a ${LIBOBJ}
+    @touch stdio.touch
+
+
+stdiofp $(FPLib):
+    $(MAKE) FPobjects "CC=$(FPCC)" "LD=$(FPLD)"
+    $(MAKE) FParchive
+
+# Pretty list of objects
+
+fpfiles:
+    ls _f_*.c | sed -e 's/\.c/.O/g' | \
+    pr -3 -l1 -t -w60 > FPfiles
+    sed -e 's/O *$$/O \\/' -e '$$s/ \\$$//' < FPfiles > FPfiles.new
+    mv FPfiles.new FPfiles
+
+libfiles:
+    ls [_a-wz]*.c | sed -e '/^_f_/d' -e 's/\.c/.O/g' | \
+    pr -3 -l1 -t -w60 > Libfiles
+    sed -e 's/O *$$/O \\/' -e '$$s/ \\$$//' < Libfiles > Libfiles.new
+    mv Libfiles.new Libfiles
+
+# Clean
+
+clean:
+    rm -f $(LIBOBJ)
+    rm -f $(FPOBJ)
+    rm -f _u_*
+    rm -f $(StdioLib) $(FPLib)
+    rm -f $(Testdir)*.s $(Fptestdir)*.s $(Installdir)*.s
+    for d in $(Testdir) $(Fptestdir) $(Installdir) ; do \
+      cd $$d ; \
+      rm -f core *.out ; \
+      for f in *.c ; do \
+        e=`basename $$f .c` ; \
+    rm -f -o $$e ; \
+      done ; \
+      cd .. ; \
+    done
+    rm -f *~ core *.out *order Hid* test.dat
+    rm -f *files *.tmp
+    rm -f estdio.u* estdio.[01]?
+
+# Site
+
+site:
+    -cdiff stdio.g stdio.h > $(Installdir)c68.sit
+    -if test ! -f site.h ; then \
+      echo site.h not installed ; \
+    else \
+      LINES=`wc -l < site.h | sed 's/ //g'` ; \
+      DATE=`date` ; \
+      echo "*** site.h	$${DATE}" >> $(Installdir)c68.sit ; \
+      echo "--- site.h	$${DATE}" >> $(Installdir)c68.sit ; \
+      echo "***************" >> $(Installdir)c68.sit ; \
+      echo "*** 0 ****" >> $(Installdir)c68.sit ; \
+      echo "--- 1,$${LINES} ----" >> $(Installdir)c68.sit ; \
+      sed -e 's/^/+ /' < site.h >> $(Installdir)c68.sit ; \
+    fi
+    -if test ! -f Makefile ; then \
+      echo Makefile not installed ; \
+    else \
+      LINES=`wc -l < Makefile | sed 's/ //g'` ; \
+      DATE=`date` ; \
+      echo "*** Makefile	$${DATE}" >> $(Installdir)c68.sit ; \
+      echo "--- Makefile	$${DATE}" >> $(Installdir)c68.sit ; \
+      echo "***************" >> $(Installdir)c68.sit ; \
+      echo "*** 0 ****" >> $(Installdir)c68.sit ; \
+      echo "--- 1,$${LINES} ----" >> $(Installdir)c68.sit ; \
+      sed -e 's/^/+ /' < Makefile >> $(Installdir)c68.sit ; \
+    fi
+    -if test -s errlist.h ; then \
+      LINES=`wc -l < errlist.h | sed 's/ //g'` ; \
+      DATE=`date` ; \
+      echo "*** errlist.h	$${DATE}" >> $(Installdir)c68.sit ; \
+      echo "--- errlist.h	$${DATE}" >> $(Installdir)c68.sit ; \
+      echo "***************" >> $(Installdir)c68.sit ; \
+      echo "*** 0 ****" >> $(Installdir)c68.sit ; \
+      echo "--- 1,$${LINES} ----" >> $(Installdir)c68.sit ; \
+      sed -e 's/^/+ /' < errlist.h >> $(Installdir)c68.sit ; \
+    fi
+    -if test -s powers.h ; then \
+      LINES=`wc -l < powers.h | sed 's/ //g'` ; \
+      DATE=`date` ; \
+      echo "*** powers.h	$${DATE}" >> $(Installdir)c68.sit ; \
+      echo "--- powers.h	$${DATE}" >> $(Installdir)c68.sit ; \
+      echo "***************" >> $(Installdir)c68.sit ; \
+      echo "*** 0 ****" >> $(Installdir)c68.sit ; \
+      echo "--- 1,$${LINES} ----" >> $(Installdir)c68.sit ; \
+      sed -e 's/^/+ /' < powers.h >> $(Installdir)c68.sit ; \
+    fi
+    -if test -s lmr.h ; then \
+      LINES=`wc -l < lmr.h | sed 's/ //g'` ; \
+      DATE=`date` ; \
+      echo "*** lmr.h	$${DATE}" >> $(Installdir)c68.sit ; \
+      echo "--- lmr.h	$${DATE}" >> $(Installdir)c68.sit ; \
+      echo "***************" >> $(Installdir)c68.sit ; \
+      echo "*** 0 ****" >> $(Installdir)c68.sit ; \
+      echo "--- 1,$${LINES} ----" >> $(Installdir)c68.sit ; \
+      sed -e 's/^/+ /' < lmr.h >> $(Installdir)c68.sit ; \
+    fi
+
+# Distribution
+
+distribution:
+    ls $(All) | \
+    sed -e '/^stdio\.h/d' \
+        -e '/^site\.h/d' \
+        -e '/^errlist\.h/d' \
+        -e '/^powers\.h/d' \
+        -e '/^lmr\.h/d' \
+        -e '/^_u_/d' > files
+
+# Arc
+
+arc:    distribution
+    rm -f estdio.arc
+    arc a estdio.arc @files
+
+# Tar
+
+tar estdio.taz: distribution
+    rm -f estdio.taz
+    tar cvf - `cat files` | compress -b13 > estdio.taz
+
+# Distribution by tar parts
+
+uu: distribution
+    rm -f estdio.u*
+    tar cvf - `cat files` | \
+    compress -b13         | \
+    uuencode estdio.taz     | \
+    split -300 - estdio.u
+    for f in estdio.u* ; do \
+      echo '------ Cut Here ------' > uu.tmp ; \
+      cat $$f >> uu.tmp ; \
+      echo '------ Cut Here ------' >> uu.tmp ; \
+      mv uu.tmp $$f ; \
+    done
+
+# Shell archive
+
+#shar:  distribution
+#   rm -f estdio.[0-9][0-9]*
+#   sed -e '/^site\.h/d' \
+#       -e '/^stdio\.h/d' \
+#       -e 's%.*\.x%&	Assembler stub%' \
+#       -e 's%^TEST/.*%&	Exercise file%' \
+#       -e 's%^FPTEST/.*%&	Exercise file%' \
+#       -e 's%^INSTALL/.*\.c%&	Installation file%' \
+#       -e 's%^INSTALL/.*\.sh%&	Installation script%' \
+#       -e 's%^INSTALL/.*\.txt%&	Documentation%' \
+#       -e 's%^INSTALL/.*\.sit%&	Differences for preconfigured sites%' \
+#       -e 's%^INSTALL/.*\.ans%&	Answer file for generating sites%' \
+#       -e 's%^makefile.cpp$$%&	Cppmake file%' \
+#       -e 's%^makefile.[a-z]*$$%&	Makefile%' \
+#       -e 's%^[0-9a-z_]*\.g$$%&	Header file source%' \
+#       -e 's%^[0-9a-z_]*\.h$$%&	Header file%' \
+#       -e 's%^_z.*\.c$$%&	Stdio fake source code%' \
+#       -e 's%^[0-9a-z_]*\.c$$%&	Stdio source code%' < files > MANIFEST
+#   shar -a -n estdio -C -b13 -c -o estdio -l 40 MANIFEST `cat files`
+
+# Dust and dirt
+
+lint:
+    lint -n $(Include) $(Define) `echo $(LIBOBJ) | sed 's/\.o/.c/g'`
+
+# Makefiles
+
+makefiles:
+    -for w in $(Everyone) ; do \
+    n=`grep "^.$$w " <makefile.cpp | sed 's/^.[^ ]* //'` ; \
+    echo $$n ; \
+    if test _MINIX = $$n ; then \
+    cppmake -o makefile.$$w ; \
+    rm -f Makefile ; \
+    cp makefile.$$w Makefile ; \
+    else \
+    cppmake -U_MINIX -D$$n -o makefile.$$w ; \
+    fi ; \
+    done
+
+
