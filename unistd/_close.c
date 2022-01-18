@@ -87,7 +87,7 @@ int close	_LIB_F1_ (int,	fd)
 		 */
 		if ( dup_found == 0 )
 		{
-			uptr->ufbflg &= (unsigned short)~UFB_DP;
+			uptr->ufbflg &= (short)~UFB_DP;
 		}
 	}
 
