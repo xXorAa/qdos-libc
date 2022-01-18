@@ -120,7 +120,7 @@ FCNTL =   $(F)_chkufb_o     $(F)_conread_o  $(F)_conwrite_o \
           $(F)open_o        $(F)opene_o     $(F)qopen_o     $(F)Xopen_o 
 
 #   Routines from libgen_h header that are in both LIBC_A and LIBGEN_A
-G = win2_LIB_GEN_
+G = LIBGEN_
 GEN_RLL =   $(G)_cescint_o  $(G)_hexint_o   $(G)_octint_o   $(G)_intcesc_o \
             $(G)_streadd_o  $(G)gmatch_o  \
             $(G)strcadd_o   $(G)strccpy_o  \
@@ -415,7 +415,7 @@ TRAP1 = $(TRAP1_RLL)
 #   QDOS Trap 2
 Q2 = QDOS_TRAP2_
 TRAP2_RLL = $(Q2)ioclose_o  $(Q2)iodelete_o $(Q2)ioformat_o $(Q2)ioopen_o \
-            $(Q2)ioa_cnam_o $(Q2)ioa_sown_o
+            $(Q2)ioa_sown_o # $(Q2)ioa_cnam_o
 TRAP2 = $(TRAP2_RLL)
 
 #   QDOS Trap 3
@@ -471,7 +471,7 @@ LATTICEX =  $(LT)fqsort_o \
             $(LT)stcis_o
 
 #   Pointer Interface routines
-QP = QPTR_
+QP = QDOS_QPTR_
 QPTR_RLL=   $(QP)iop_flim_o      $(QP)iop_lblb_o \
             $(QP)iop_outl_o      $(QP)iop_pick_o      $(QP)iop_pinf_o \
             $(QP)iop_rptr_o      $(QP)iop_rpxl_o      $(QP)iop_slnk_o \
@@ -511,8 +511,8 @@ QPTR= $(QPTR_RLL)
 
 
 #   C68 Compiler Support routines
-SP   = win2_C68_LIB68K_
-IEEE = win2_C68_LIBIEEE_
+SP   = LIB68K_
+IEEE = LIBIEEE_
 
 C68OBJ_RLL= $(SP)Xalloca32_o $(SP)Xdiv_o  $(SP)Xmul_o \
         $(SP)Xbfasop_o   $(SP)Xbfget_o    $(SP)Xbfput_o \
@@ -625,7 +625,7 @@ HEADERS =   $(I)arpa_ftp_h      $(I)arpa_inet_h     $(I)arpa_telnet_h \
             $(I)sys_math_h  $(I)sys_qlib_h \
             $(I)sys_bsdtypes_h  $(I)sys_file_h \
             $(I)sys_ioctl_h     $(I)sys_param_h \
-            $(I)sys_select_h    $(I)sys_signal_h    $(I)sys_socket_hdr \
+            $(I)sys_select_h    $(I)sys_signal_h    $(I)sys_socket_h \
             $(I)sys_stat_h      $(I)sys_sysdefs_h   $(I)sys_trapdefs_h \
             $(I)sys_times_h     $(I)sys_types_h     $(I)sys_wait_h \
             $(I)term_h      $(I)termios_h    $(I)things_h    $(I)time_h \
