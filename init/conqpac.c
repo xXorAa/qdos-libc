@@ -666,7 +666,7 @@ extern int consetup_qpac_poll(chanid_t chanid)
     auto    short           x = -1;
     auto    short           y = -1;
     auto    struct  WM_prec prec;
-    auto    unsigned char   key;
+    auto    char            key;
 
     /* Read pointer. Return immiately. Use io.fbyte if no PI. */
 
@@ -677,7 +677,7 @@ extern int consetup_qpac_poll(chanid_t chanid)
     }
     else
     {
-        if(!!(qderr = io_fbyte(chanid, 0, &((unsigned char)key))))
+        if(!!(qderr = io_fbyte(chanid, 0, &key)))
         {
             if(qderr != ERR_NC)
             {
