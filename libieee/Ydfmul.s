@@ -168,8 +168,10 @@ dfmultiply:
 	move.l	(a0),d1 			! add to result
 	addx.l	d3,d1
 	move.l	d1,(a0)
-#ifdef AS68
-	roxl	-(a0)
+#if QDOS
+	move.w	-(a0),d3
+	roxl.w	#1,d3				! QDOS assembler does not do other form of ROXL
+	move.w	d3,(a0)
 #else
 	roxl.w	#1,-(a0)			! rotate carry in
 #endif
