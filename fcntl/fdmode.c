@@ -28,7 +28,7 @@ int fdmode	_LIB_F2_( int,	fd, 	\
 	}
 	else
 	{
-		uptr->ufbflg &= (unsigned short)~UFB_NT;
+		uptr->ufbflg &= (short)~UFB_NT;
 	}
 	return 0;
 }
