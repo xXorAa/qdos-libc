@@ -108,7 +108,7 @@ void _stdchans(void)
 				}
 				ic = i;
 			}
-			uptr->ufbflg &= (unsigned short)~(UFB_RA | UFB_WA); 	/* Clear READ/WRITE flags */
+			uptr->ufbflg &= (short)~(UFB_RA | UFB_WA); 	/* Clear READ/WRITE flags */
 			nc |= mask;
 		}
 	}
