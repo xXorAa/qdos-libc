@@ -84,7 +84,7 @@ use_trap:
 ;   yet know the answer.
 
 check_vector:
-    beq     find_vector             ; branch if we don't yet know...
+    beq     find_vector             ; branch if we dont yet know...
 
 ;   We are now calling the THING system via the UTILITY THING.  As a
 ;   sanity check, we check that our vector still points to it.
@@ -103,7 +103,7 @@ rts_cond:
     tst.l   d0                      ; ensure condition code set
     rts
 
-;   We don't know yet what interface is to be used...
+;   We dont know yet what interface is to be used...
 ;   We first check for the presence of the UTILITY THING to call
 ;   the THING system.
 
