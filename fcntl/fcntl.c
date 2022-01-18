@@ -85,8 +85,8 @@ int fcntl ( int  fd, int  action,  ...)
 			return (int)_ModeFd(uptr->ufbflg);
 
 		case F_SETFL:
-			uptr->ufbflg &= (unsigned short)~(TOUCH_MASK);
-			uptr->ufbflg |= (unsigned short)(_ModeUfb(flags) & TOUCH_MASK);
+			uptr->ufbflg &= (short)~((short)TOUCH_MASK);
+			uptr->ufbflg |= (short)(_ModeUfb(flags) & (short)TOUCH_MASK);
 			return 0;
 
 		case F_GETLK:
