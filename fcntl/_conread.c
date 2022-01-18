@@ -106,7 +106,7 @@ int 	default_conread _LIB_F3_(struct UFB *,		 uptr,	\
 		switch (*ptr) {
 		case 4 :		 /* CTRL_D == EOF */
 				_oserr = ERR_EF;					/* Set QDOS EOF code */
-				uptr->ufbst |= UFB_EOF; 			/* ... and set flag in UFB */
+				uptr->ufbst |= (char) UFB_EOF; 			/* ... and set flag in UFB */
 				goto DO_EXIT;						/* Ignore this character, by not incrementing ptr */
 
 		case 192:		/* LEFT == Delete */
