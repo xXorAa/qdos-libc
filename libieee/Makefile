@@ -115,7 +115,7 @@ OLDOBJ=asdiv$(S)o asmul$(S)o \
     sfneg$(S)o sftodf$(S)o sftol$(S)o sftoul$(S)o sftst$(S)o sfutosf$(S)o
 
 # all : $(OBJ) $(OLDOBJ) ieeetest fputest
-all : $(OBJ) ieeetest fputest
+all : $(OBJ)
 
 #
 #   Default rules
