@@ -190,7 +190,7 @@ static int sys_read _LIB_F3_( int,			   fd,	   \
 			return -1;
 	case D_NULL:
 			_oserr = (short)ERR_EF; 		/* Set QDOS EOF code */
-			uptr->ufbst |= (unsigned char)UFB_EOF;	 /* ... and set flag in UFB */
+			uptr->ufbst |= (char)UFB_EOF;	 /* ... and set flag in UFB */
 			return 0;
 	case D_SOCKET:
 			return recv(fd, buf, len, 0);
