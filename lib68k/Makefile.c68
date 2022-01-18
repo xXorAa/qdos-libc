@@ -26,7 +26,7 @@ LIB = /usr/lib
 #S=.
 S=_
 
-lib68k : ${OBJ}  test32 test64
+lib68k : ${OBJ}
 
 install:	${OBJ}
 	ar crv ${LIB}/libc.a ${OBJ}
